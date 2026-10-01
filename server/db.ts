@@ -112,25 +112,38 @@ import { materialJobs } from "../drizzle/schema";
 import { storageGetSignedUrl, storagePut } from "./storage";
 
 const MAX_MATERIAL_BYTES = 20 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 50 * 1024 * 1024;
 const MATERIAL_TYPES = new Map([
   ["application/pdf", "pdf"],
   ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"],
   ["image/png", "image"],
   ["image/jpeg", "image"],
   ["image/webp", "image"],
+  ["audio/mpeg", "audio"],
+  ["audio/wav", "audio"],
+  ["audio/ogg", "audio"],
+  ["audio/mp4", "audio"],
+  ["audio/webm", "audio"],
 ]);
 
-function decodeBase64Payload(payload: string) {
+function decodeBase64Payload(payload: string, kind: string) {
   const clean = payload.replace(/^data:[^;]+;base64,/, "");
   const data = Buffer.from(clean, "base64");
-  if (!data.length || data.length > MAX_MATERIAL_BYTES) throw new Error("FILE_TOO_LARGE_OR_EMPTY");
+  if (!data.length || data.length > (kind === "audio" ? MAX_AUDIO_BYTES : MAX_MATERIAL_BYTES)) throw new Error("FILE_TOO_LARGE_OR_EMPTY");
   return data;
 }
 
-function hasExpectedSignature(data: Buffer, kind: string) {
+function hasExpectedSignature(data: Buffer, kind: string, mimeType: string) {
   if (kind === "pdf") return data.subarray(0, 5).toString("ascii") === "%PDF-";
   if (kind === "docx") return data.subarray(0, 2).toString("ascii") === "PK";
   if (kind === "image") return data.subarray(0, 8).toString("hex") === "89504e470d0a1a0a" || data.subarray(0, 3).toString("hex") === "ffd8ff" || data.subarray(0, 4).toString("ascii") === "RIFF";
+  if (kind === "audio") {
+    if (mimeType === "audio/mpeg") return data.subarray(0, 3).toString("ascii") === "ID3" || (data[0] === 0xff && (data[1] & 0xe0) === 0xe0);
+    if (mimeType === "audio/wav") return data.subarray(0, 4).toString("ascii") === "RIFF" && data.subarray(8, 12).toString("ascii") === "WAVE";
+    if (mimeType === "audio/ogg") return data.subarray(0, 4).toString("ascii") === "OggS";
+    if (mimeType === "audio/webm") return data.subarray(0, 4).toString("hex") === "1a45dfa3";
+    if (mimeType === "audio/mp4") return data.subarray(4, 8).toString("ascii") === "ftyp";
+  }
   return false;
 }
 
@@ -141,19 +154,19 @@ export async function createUploadedMaterial(userId: number, input: { subjectId:
   if (!owner[0]) throw new Error("Subject not found");
   const kind = MATERIAL_TYPES.get(input.mimeType);
   if (!kind) throw new Error("UNSUPPORTED_FILE_TYPE");
-  const data = decodeBase64Payload(input.base64);
-  if (!hasExpectedSignature(data, kind)) throw new Error("FILE_SIGNATURE_MISMATCH");
+  const data = decodeBase64Payload(input.base64, kind);
+  if (!hasExpectedSignature(data, kind, input.mimeType)) throw new Error("FILE_SIGNATURE_MISMATCH");
   const contentHash = createHash("sha256").update(data).digest("hex");
   const duplicate = await db.select({ id: materials.id }).from(materials).where(and(eq(materials.userId, userId), eq(materials.subjectId, input.subjectId), eq(materials.contentHash, contentHash))).limit(1);
   if (duplicate[0]) return { duplicate: true, materialId: duplicate[0].id, buffer: data };
   const stored = await storagePut(`subjects/${input.subjectId}/${input.name}`, data, input.mimeType);
   const inserted = await db.insert(materials).values({ userId, subjectId: input.subjectId, name: input.name, kind, mimeType: input.mimeType, storageKey: stored.key, sizeBytes: data.length, contentHash, status: "queued" });
   const materialId = Number(inserted[0].insertId);
-  const job = await db.insert(materialJobs).values({ userId, materialId, type: "extract", status: "queued" });
+  const job = await db.insert(materialJobs).values({ userId, materialId, type: kind === "audio" ? "transcribe" : "extract", status: "queued" });
   return { duplicate: false, materialId, jobId: Number(job[0].insertId), buffer: data };
 }
 
-export async function updateMaterialProcessing(userId: number, materialId: number, input: { status: "extracting" | "indexing" | "indexed" | "needs_review" | "failed"; textContent?: string; pageCount?: number; errorCode?: string; errorMessage?: string; detectedLanguage?: string; ocrConfidence?: number }) {
+export async function updateMaterialProcessing(userId: number, materialId: number, input: { status: "extracting" | "indexing" | "indexed" | "needs_review" | "failed"; textContent?: string; pageCount?: number; audioDurationSeconds?: number; transcriptSegments?: unknown; errorCode?: string; errorMessage?: string; detectedLanguage?: string; ocrConfidence?: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(materials).set({ ...input, processedAt: ["indexed", "needs_review", "failed"].includes(input.status) ? new Date() : null }).where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
@@ -175,7 +188,7 @@ export async function retryUploadedMaterial(userId: number, materialId: number) 
   const response = await fetch(signedUrl);
   if (!response.ok) throw new Error("MATERIAL_DOWNLOAD_FAILED");
   const buffer = Buffer.from(await response.arrayBuffer());
-  const job = await db.insert(materialJobs).values({ userId, materialId, type: "extract", status: "queued" });
+  const job = await db.insert(materialJobs).values({ userId, materialId, type: material.kind === "audio" ? "transcribe" : "extract", status: "queued" });
   await db.update(materials).set({ status: "queued", errorCode: null, errorMessage: null, processedAt: null }).where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
-  return { jobId: Number(job[0].insertId), buffer, kind: material.kind as "pdf" | "docx" | "image" };
+  return { jobId: Number(job[0].insertId), buffer, kind: material.kind as "pdf" | "docx" | "image" | "audio", mimeType: material.mimeType };
 }

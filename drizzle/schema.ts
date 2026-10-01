@@ -1,4 +1,4 @@
-import { boolean, date, index, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, date, index, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -48,6 +48,8 @@ export const materials = mysqlTable("materials", {
   sizeBytes: int("sizeBytes"),
   contentHash: varchar("contentHash", { length: 64 }),
   pageCount: int("pageCount"),
+  audioDurationSeconds: int("audioDurationSeconds"),
+  transcriptSegments: json("transcriptSegments"),
   detectedLanguage: varchar("detectedLanguage", { length: 12 }),
   ocrConfidence: int("ocrConfidence"),
   textContent: text("textContent"),
@@ -63,7 +65,7 @@ export const materialJobs = mysqlTable("material_jobs", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   materialId: int("materialId").notNull(),
-  type: mysqlEnum("type", ["extract", "index"]).default("extract").notNull(),
+  type: mysqlEnum("type", ["extract", "transcribe", "index"]).default("extract").notNull(),
   status: mysqlEnum("job_status", ["queued", "running", "completed", "failed"]).default("queued").notNull(),
   attempts: int("attempts").default(0).notNull(),
   errorMessage: text("errorMessage"),

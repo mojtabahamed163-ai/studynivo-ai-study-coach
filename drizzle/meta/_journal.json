@@ -29,6 +29,13 @@
       "when": 1790860307800,
       "tag": "0003_pretty_inhumans",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1790861137713,
+      "tag": "0004_nosy_pestilence",
+      "breakpoints": true
     }
   ]
 }

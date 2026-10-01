@@ -222,7 +222,13 @@ export const generatedCatalogs = {
     "No exam date yet": "No exam date yet",
     "No exam date": "No exam date",
     "Exam today": "Exam today",
-    "days": "days"
+    "days": "days",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "Upload PDF, DOCX, images, audio, TXT, or Markdown",
+    "Audio is transcribed with timestamps before indexing.": "Audio is transcribed with timestamps before indexing.",
+    "Audio recording": "Audio recording",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Use PDF, DOCX, images, audio, TXT, or Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "This file is larger than the 20 MB document / 50 MB audio limit.",
+    "Upload failed. Check the file type and try again.": "Upload failed. Check the file type and try again."
   },
   "ar": {
     "StudyNivo": "StudyNivo",
@@ -446,7 +452,13 @@ export const generatedCatalogs = {
     "No exam date yet": "لم يُحدد تاريخ الامتحان بعد",
     "No exam date": "لا يوجد تاريخ امتحان",
     "Exam today": "الامتحان اليوم",
-    "days": "أيام"
+    "days": "أيام",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "تحميل PDF أو DOCX أو صور أو صوت أو TXT أو Markdown",
+    "Audio is transcribed with timestamps before indexing.": "يتم تفريغ الصوت مع الطوابع الزمنية قبل الفهرسة.",
+    "Audio recording": "تسجيل صوتي",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "استخدم PDF أو DOCX أو صور أو صوت أو TXT أو Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "هذا الملف أكبر من الحد المسموح به: 20 ميغابايت للمستند / 50 ميغابايت للصوت.",
+    "Upload failed. Check the file type and try again.": "فشل التحميل. تحقق من نوع الملف وحاول مرة أخرى."
   },
   "es": {
     "StudyNivo": "StudyNivo",
@@ -670,7 +682,13 @@ export const generatedCatalogs = {
     "No exam date yet": "Aún no hay fecha de examen",
     "No exam date": "Sin fecha de examen",
     "Exam today": "Examen hoy",
-    "days": "días"
+    "days": "días",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "Subir PDF, DOCX, imágenes, audio, TXT o Markdown",
+    "Audio is transcribed with timestamps before indexing.": "El audio se transcribe con marcas de tiempo antes de indexarlo.",
+    "Audio recording": "Grabación de audio",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Usa PDF, DOCX, imágenes, audio, TXT o Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "Este archivo supera el límite de 20 MB para documentos / 50 MB para audio.",
+    "Upload failed. Check the file type and try again.": "Error al subir. Comprueba el tipo de archivo y vuelve a intentarlo."
   },
   "pt": {
     "StudyNivo": "StudyNivo",
@@ -894,7 +912,13 @@ export const generatedCatalogs = {
     "No exam date yet": "Ainda sem data de prova",
     "No exam date": "Sem data de prova",
     "Exam today": "Prova hoje",
-    "days": "dias"
+    "days": "dias",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "Envie PDF, DOCX, imagens, áudio, TXT ou Markdown",
+    "Audio is transcribed with timestamps before indexing.": "Áudio é transcrito com carimbos de tempo antes da indexação.",
+    "Audio recording": "Gravação de áudio",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Use PDF, DOCX, imagens, áudio, TXT ou Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "Este arquivo é maior que o limite de 20 MB para documento / 50 MB para áudio.",
+    "Upload failed. Check the file type and try again.": "Envio falhou. Verifique o tipo de arquivo e tente novamente."
   },
   "fr": {
     "StudyNivo": "StudyNivo",
@@ -1118,7 +1142,13 @@ export const generatedCatalogs = {
     "No exam date yet": "Pas encore de date d’examen",
     "No exam date": "Pas de date d’examen",
     "Exam today": "Examen aujourd’hui",
-    "days": "jours"
+    "days": "jours",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "Téléversez des PDF, DOCX, images, audio, TXT ou Markdown",
+    "Audio is transcribed with timestamps before indexing.": "L'audio est transcrit avec des horodatages avant l'indexation.",
+    "Audio recording": "Enregistrement audio",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Utilisez des PDF, DOCX, images, audio, TXT ou Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "Ce fichier dépasse la limite de 20 Mo pour les documents / 50 Mo pour les fichiers audio.",
+    "Upload failed. Check the file type and try again.": "Échec du téléversement. Vérifiez le type de fichier et réessayez."
   },
   "de": {
     "StudyNivo": "StudyNivo",
@@ -1342,7 +1372,13 @@ export const generatedCatalogs = {
     "No exam date yet": "Noch kein Prüfungstermin",
     "No exam date": "Kein Prüfungstermin",
     "Exam today": "Prüfung heute",
-    "days": "Tage"
+    "days": "Tage",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "PDF, DOCX, Bilder, Audio, TXT oder Markdown hochladen",
+    "Audio is transcribed with timestamps before indexing.": "Audio wird vor der Indizierung mit Zeitstempeln transkribiert.",
+    "Audio recording": "Audioaufnahme",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Verwenden Sie PDF, DOCX, Bilder, Audio, TXT oder Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "Diese Datei ist größer als das Dokumentenlimit von 20 MB / Audiolimit von 50 MB.",
+    "Upload failed. Check the file type and try again.": "Upload fehlgeschlagen. Überprüfen Sie den Dateityp und versuchen Sie es erneut."
   },
   "it": {
     "StudyNivo": "StudyNivo",
@@ -1566,7 +1602,13 @@ export const generatedCatalogs = {
     "No exam date yet": "Nessuna data d'esame ancora",
     "No exam date": "Nessuna data d'esame",
     "Exam today": "Esame oggi",
-    "days": "giorni"
+    "days": "giorni",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "Carica PDF, DOCX, immagini, audio, TXT o Markdown",
+    "Audio is transcribed with timestamps before indexing.": "L'audio viene trascritto con timestamp prima dell'indicizzazione.",
+    "Audio recording": "Registrazione audio",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Usa PDF, DOCX, immagini, audio, TXT o Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "Questo file è più grande del limite: 20 MB per documento / 50 MB per audio.",
+    "Upload failed. Check the file type and try again.": "Caricamento fallito. Controlla il tipo di file e riprova."
   },
   "tr": {
     "StudyNivo": "StudyNivo",
@@ -1790,7 +1832,13 @@ export const generatedCatalogs = {
     "No exam date yet": "Henüz sınav tarihi yok",
     "No exam date": "Sınav tarihi yok",
     "Exam today": "Sınav bugün",
-    "days": "günler"
+    "days": "günler",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "PDF, DOCX, resimler, ses, TXT veya Markdown yükleyin",
+    "Audio is transcribed with timestamps before indexing.": "Ses, dizine eklemeden önce zaman damgalarıyla yazıya dökülür.",
+    "Audio recording": "Ses kaydı",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF, DOCX, resimler, ses, TXT veya Markdown kullanın.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "Bu dosya 20 MB belge / 50 MB ses sınırından daha büyük.",
+    "Upload failed. Check the file type and try again.": "Yükleme başarısız oldu. Dosya türünü kontrol edin ve tekrar deneyin."
   },
   "ja": {
     "StudyNivo": "StudyNivo",
@@ -2014,7 +2062,13 @@ export const generatedCatalogs = {
     "No exam date yet": "まだ試験日が設定されていません",
     "No exam date": "試験日なし",
     "Exam today": "本日試験",
-    "days": "日"
+    "days": "日",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "PDF、DOCX、画像、音声、TXT、またはMarkdownをアップロード",
+    "Audio is transcribed with timestamps before indexing.": "音声はインデックス作成前にタイムスタンプ付きで文字起こしされます。",
+    "Audio recording": "音声録音",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF、DOCX、画像、音声、TXT、またはMarkdownを使用してください。",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "このファイルはドキュメントの20MB／音声の50MBの上限を超えています。",
+    "Upload failed. Check the file type and try again.": "アップロードに失敗しました。ファイル形式を確認してもう一度お試しください。"
   },
   "ko": {
     "StudyNivo": "StudyNivo",
@@ -2238,7 +2292,13 @@ export const generatedCatalogs = {
     "No exam date yet": "아직 시험일 없음",
     "No exam date": "시험일 없음",
     "Exam today": "오늘 시험",
-    "days": "일"
+    "days": "일",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "PDF, DOCX, 이미지, 오디오, TXT 또는 Markdown 업로드",
+    "Audio is transcribed with timestamps before indexing.": "오디오는 인덱싱 전에 타임스탬프가 포함된 전사로 변환됩니다.",
+    "Audio recording": "오디오 녹음",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF, DOCX, 이미지, 오디오, TXT 또는 Markdown을 사용하세요.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "이 파일은 20MB 문서 / 50MB 오디오 제한보다 큽니다.",
+    "Upload failed. Check the file type and try again.": "업로드 실패. 파일 형식을 확인한 후 다시 시도하세요."
   },
   "zh": {
     "StudyNivo": "StudyNivo",
@@ -2462,7 +2522,13 @@ export const generatedCatalogs = {
     "No exam date yet": "尚未设置考试日期",
     "No exam date": "无考试日期",
     "Exam today": "今天考试",
-    "days": "天"
+    "days": "天",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "上传 PDF、DOCX、图像、音频、TXT 或 Markdown",
+    "Audio is transcribed with timestamps before indexing.": "音频在索引前会带时间戳进行转录。",
+    "Audio recording": "音频录制",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "使用 PDF、DOCX、图像、音频、TXT 或 Markdown。",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "该文件超过 20 MB 文档 / 50 MB 音频 限制。",
+    "Upload failed. Check the file type and try again.": "上传失败。请检查文件类型并重试。"
   },
   "hi": {
     "StudyNivo": "StudyNivo",
@@ -2686,7 +2752,13 @@ export const generatedCatalogs = {
     "No exam date yet": "अभी कोई परीक्षा तिथि नहीं",
     "No exam date": "कोई परीक्षा तिथि नहीं",
     "Exam today": "आज परीक्षा है",
-    "days": "दिन"
+    "days": "दिन",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "PDF, DOCX, इमेज, ऑडियो, TXT, या Markdown अपलोड करें",
+    "Audio is transcribed with timestamps before indexing.": "ऑडियो को इंडेक्स करने से पहले टाइमस्टैम्प के साथ ट्रांसक्राइब किया जाता है।",
+    "Audio recording": "ऑडियो रिकॉर्डिंग",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF, DOCX, इमेज, ऑडियो, TXT, या Markdown का उपयोग करें।",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "यह फ़ाइल 20 MB दस्तावेज़ / 50 MB ऑडियो सीमा से बड़ी है।",
+    "Upload failed. Check the file type and try again.": "अपलोड विफल रहा। फ़ाइल प्रकार जांचें और फिर से प्रयास करें।"
   },
   "ru": {
     "StudyNivo": "StudyNivo",
@@ -2910,7 +2982,13 @@ export const generatedCatalogs = {
     "No exam date yet": "Дата экзамена пока не задана",
     "No exam date": "Нет даты экзамена",
     "Exam today": "Экзамен сегодня",
-    "days": "дней"
+    "days": "дней",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "Загрузите PDF, DOCX, изображения, аудио, TXT или Markdown",
+    "Audio is transcribed with timestamps before indexing.": "Аудио транскрибируется с отметками времени перед индексированием.",
+    "Audio recording": "Запись аудио",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Используйте PDF, DOCX, изображения, аудио, TXT или Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "Этот файл превышает лимит: 20 МБ для документов / 50 МБ для аудио.",
+    "Upload failed. Check the file type and try again.": "Загрузка не удалась. Проверьте тип файла и попробуйте снова."
   },
   "id": {
     "StudyNivo": "StudyNivo",
@@ -3134,6 +3212,12 @@ export const generatedCatalogs = {
     "No exam date yet": "Belum ada tanggal ujian",
     "No exam date": "Tanpa tanggal ujian",
     "Exam today": "Ujian hari ini",
-    "days": "hari"
+    "days": "hari",
+    "Upload PDF, DOCX, images, audio, TXT, or Markdown": "Unggah PDF, DOCX, gambar, audio, TXT, atau Markdown",
+    "Audio is transcribed with timestamps before indexing.": "Audio ditranskripsikan dengan cap waktu sebelum diindeks.",
+    "Audio recording": "Perekaman audio",
+    "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Gunakan PDF, DOCX, gambar, audio, TXT, atau Markdown.",
+    "This file is larger than the 20 MB document / 50 MB audio limit.": "File ini lebih besar dari batas dokumen 20 MB / audio 50 MB.",
+    "Upload failed. Check the file type and try again.": "Unggahan gagal. Periksa jenis file dan coba lagi."
   }
 } as const;
