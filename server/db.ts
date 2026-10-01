@@ -75,6 +75,18 @@ export async function addTextMaterial(userId: number, input: { subjectId: number
   return rows[0];
 }
 
+export async function saveTopicInsights(userId: number, subjectId: number, insights: Array<{ name: string; note: string; sourceRef: string }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const owner = await db.select({ id: subjects.id }).from(subjects).where(and(eq(subjects.id, subjectId), eq(subjects.userId, userId))).limit(1);
+  if (!owner[0]) throw new Error("Subject not found");
+  const existing = await db.select({ name: topics.name }).from(topics).where(and(eq(topics.subjectId, subjectId), eq(topics.userId, userId)));
+  const names = new Set(existing.map((topic) => topic.name.trim().toLocaleLowerCase()));
+  const fresh = insights.filter((item) => item.name.trim() && !names.has(item.name.trim().toLocaleLowerCase())).slice(0, 80);
+  if (fresh.length) await db.insert(topics).values(fresh.map((item) => ({ userId, subjectId, name: item.name.trim().slice(0, 180), note: item.note.trim(), sourceRef: item.sourceRef.trim().slice(0, 255) })));
+  return fresh.length;
+}
+
 export async function createStudySession(userId: number, input: { subjectId: number; topicId?: number; durationMinutes: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");

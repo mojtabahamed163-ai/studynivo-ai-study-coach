@@ -228,7 +228,8 @@ export const generatedCatalogs = {
     "Audio recording": "Audio recording",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Use PDF, DOCX, images, audio, TXT, or Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "This file is larger than the 20 MB document / 50 MB audio limit.",
-    "Upload failed. Check the file type and try again.": "Upload failed. Check the file type and try again."
+    "Upload failed. Check the file type and try again.": "Upload failed. Check the file type and try again.",
+    "Analyze topics": "Analyze topics"
   },
   "ar": {
     "StudyNivo": "StudyNivo",
@@ -458,7 +459,8 @@ export const generatedCatalogs = {
     "Audio recording": "تسجيل صوتي",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "استخدم PDF أو DOCX أو صور أو صوت أو TXT أو Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "هذا الملف أكبر من الحد المسموح به: 20 ميغابايت للمستند / 50 ميغابايت للصوت.",
-    "Upload failed. Check the file type and try again.": "فشل التحميل. تحقق من نوع الملف وحاول مرة أخرى."
+    "Upload failed. Check the file type and try again.": "فشل التحميل. تحقق من نوع الملف وحاول مرة أخرى.",
+    "Analyze topics": "حلّل المواضيع"
   },
   "es": {
     "StudyNivo": "StudyNivo",
@@ -688,7 +690,8 @@ export const generatedCatalogs = {
     "Audio recording": "Grabación de audio",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Usa PDF, DOCX, imágenes, audio, TXT o Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "Este archivo supera el límite de 20 MB para documentos / 50 MB para audio.",
-    "Upload failed. Check the file type and try again.": "Error al subir. Comprueba el tipo de archivo y vuelve a intentarlo."
+    "Upload failed. Check the file type and try again.": "Error al subir. Comprueba el tipo de archivo y vuelve a intentarlo.",
+    "Analyze topics": "Analizar temas"
   },
   "pt": {
     "StudyNivo": "StudyNivo",
@@ -918,7 +921,8 @@ export const generatedCatalogs = {
     "Audio recording": "Gravação de áudio",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Use PDF, DOCX, imagens, áudio, TXT ou Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "Este arquivo é maior que o limite de 20 MB para documento / 50 MB para áudio.",
-    "Upload failed. Check the file type and try again.": "Envio falhou. Verifique o tipo de arquivo e tente novamente."
+    "Upload failed. Check the file type and try again.": "Envio falhou. Verifique o tipo de arquivo e tente novamente.",
+    "Analyze topics": "Analisar tópicos"
   },
   "fr": {
     "StudyNivo": "StudyNivo",
@@ -1148,7 +1152,8 @@ export const generatedCatalogs = {
     "Audio recording": "Enregistrement audio",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Utilisez des PDF, DOCX, images, audio, TXT ou Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "Ce fichier dépasse la limite de 20 Mo pour les documents / 50 Mo pour les fichiers audio.",
-    "Upload failed. Check the file type and try again.": "Échec du téléversement. Vérifiez le type de fichier et réessayez."
+    "Upload failed. Check the file type and try again.": "Échec du téléversement. Vérifiez le type de fichier et réessayez.",
+    "Analyze topics": "Analyser les thèmes"
   },
   "de": {
     "StudyNivo": "StudyNivo",
@@ -1378,7 +1383,8 @@ export const generatedCatalogs = {
     "Audio recording": "Audioaufnahme",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Verwenden Sie PDF, DOCX, Bilder, Audio, TXT oder Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "Diese Datei ist größer als das Dokumentenlimit von 20 MB / Audiolimit von 50 MB.",
-    "Upload failed. Check the file type and try again.": "Upload fehlgeschlagen. Überprüfen Sie den Dateityp und versuchen Sie es erneut."
+    "Upload failed. Check the file type and try again.": "Upload fehlgeschlagen. Überprüfen Sie den Dateityp und versuchen Sie es erneut.",
+    "Analyze topics": "Themen analysieren"
   },
   "it": {
     "StudyNivo": "StudyNivo",
@@ -1608,7 +1614,8 @@ export const generatedCatalogs = {
     "Audio recording": "Registrazione audio",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Usa PDF, DOCX, immagini, audio, TXT o Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "Questo file è più grande del limite: 20 MB per documento / 50 MB per audio.",
-    "Upload failed. Check the file type and try again.": "Caricamento fallito. Controlla il tipo di file e riprova."
+    "Upload failed. Check the file type and try again.": "Caricamento fallito. Controlla il tipo di file e riprova.",
+    "Analyze topics": "Analizza argomenti"
   },
   "tr": {
     "StudyNivo": "StudyNivo",
@@ -1838,7 +1845,8 @@ export const generatedCatalogs = {
     "Audio recording": "Ses kaydı",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF, DOCX, resimler, ses, TXT veya Markdown kullanın.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "Bu dosya 20 MB belge / 50 MB ses sınırından daha büyük.",
-    "Upload failed. Check the file type and try again.": "Yükleme başarısız oldu. Dosya türünü kontrol edin ve tekrar deneyin."
+    "Upload failed. Check the file type and try again.": "Yükleme başarısız oldu. Dosya türünü kontrol edin ve tekrar deneyin.",
+    "Analyze topics": "Konuları analiz et"
   },
   "ja": {
     "StudyNivo": "StudyNivo",
@@ -2068,7 +2076,8 @@ export const generatedCatalogs = {
     "Audio recording": "音声録音",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF、DOCX、画像、音声、TXT、またはMarkdownを使用してください。",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "このファイルはドキュメントの20MB／音声の50MBの上限を超えています。",
-    "Upload failed. Check the file type and try again.": "アップロードに失敗しました。ファイル形式を確認してもう一度お試しください。"
+    "Upload failed. Check the file type and try again.": "アップロードに失敗しました。ファイル形式を確認してもう一度お試しください。",
+    "Analyze topics": "トピックを分析"
   },
   "ko": {
     "StudyNivo": "StudyNivo",
@@ -2298,7 +2307,8 @@ export const generatedCatalogs = {
     "Audio recording": "오디오 녹음",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF, DOCX, 이미지, 오디오, TXT 또는 Markdown을 사용하세요.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "이 파일은 20MB 문서 / 50MB 오디오 제한보다 큽니다.",
-    "Upload failed. Check the file type and try again.": "업로드 실패. 파일 형식을 확인한 후 다시 시도하세요."
+    "Upload failed. Check the file type and try again.": "업로드 실패. 파일 형식을 확인한 후 다시 시도하세요.",
+    "Analyze topics": "주제 분석"
   },
   "zh": {
     "StudyNivo": "StudyNivo",
@@ -2528,7 +2538,8 @@ export const generatedCatalogs = {
     "Audio recording": "音频录制",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "使用 PDF、DOCX、图像、音频、TXT 或 Markdown。",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "该文件超过 20 MB 文档 / 50 MB 音频 限制。",
-    "Upload failed. Check the file type and try again.": "上传失败。请检查文件类型并重试。"
+    "Upload failed. Check the file type and try again.": "上传失败。请检查文件类型并重试。",
+    "Analyze topics": "分析主题"
   },
   "hi": {
     "StudyNivo": "StudyNivo",
@@ -2758,7 +2769,8 @@ export const generatedCatalogs = {
     "Audio recording": "ऑडियो रिकॉर्डिंग",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "PDF, DOCX, इमेज, ऑडियो, TXT, या Markdown का उपयोग करें।",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "यह फ़ाइल 20 MB दस्तावेज़ / 50 MB ऑडियो सीमा से बड़ी है।",
-    "Upload failed. Check the file type and try again.": "अपलोड विफल रहा। फ़ाइल प्रकार जांचें और फिर से प्रयास करें।"
+    "Upload failed. Check the file type and try again.": "अपलोड विफल रहा। फ़ाइल प्रकार जांचें और फिर से प्रयास करें।",
+    "Analyze topics": "विषयों का विश्लेषण करें"
   },
   "ru": {
     "StudyNivo": "StudyNivo",
@@ -2988,7 +3000,8 @@ export const generatedCatalogs = {
     "Audio recording": "Запись аудио",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Используйте PDF, DOCX, изображения, аудио, TXT или Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "Этот файл превышает лимит: 20 МБ для документов / 50 МБ для аудио.",
-    "Upload failed. Check the file type and try again.": "Загрузка не удалась. Проверьте тип файла и попробуйте снова."
+    "Upload failed. Check the file type and try again.": "Загрузка не удалась. Проверьте тип файла и попробуйте снова.",
+    "Analyze topics": "Анализировать темы"
   },
   "id": {
     "StudyNivo": "StudyNivo",
@@ -3218,6 +3231,7 @@ export const generatedCatalogs = {
     "Audio recording": "Perekaman audio",
     "Use PDF, DOCX, images, audio, TXT, or Markdown.": "Gunakan PDF, DOCX, gambar, audio, TXT, atau Markdown.",
     "This file is larger than the 20 MB document / 50 MB audio limit.": "File ini lebih besar dari batas dokumen 20 MB / audio 50 MB.",
-    "Upload failed. Check the file type and try again.": "Unggahan gagal. Periksa jenis file dan coba lagi."
+    "Upload failed. Check the file type and try again.": "Unggahan gagal. Periksa jenis file dan coba lagi.",
+    "Analyze topics": "Analisis topik"
   }
 } as const;

@@ -5,7 +5,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { chatCompletion, groundedSystemPrompt } from "./ai/client";
 import { chunkText, selectRelevantChunks } from "./ai/materialProcessor";
-import { addSavedItem, addTextMaterial, createStudySession, createSubject, createUploadedMaterial, getSubject, listSubjects, retryUploadedMaterial, updateStudySession } from "./db";
+import { addSavedItem, addTextMaterial, createStudySession, createSubject, createUploadedMaterial, getSubject, listSubjects, retryUploadedMaterial, saveTopicInsights, updateStudySession } from "./db";
+import { extractTopicInsights } from "./ai/materialAnalysis";
 import { enqueueMaterialProcessing } from "./materialPipeline";
 
 export const appRouter = router({
@@ -28,6 +29,15 @@ export const appRouter = router({
       const result = await retryUploadedMaterial(ctx.user.id, input.materialId);
       enqueueMaterialProcessing({ userId: ctx.user.id, materialId: input.materialId, jobId: result.jobId, kind: result.kind, mimeType: result.mimeType!, buffer: result.buffer });
       return { materialId: input.materialId, status: "queued" as const };
+    }),
+    analyzeMaterial: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), materialId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const subject = await getSubject(ctx.user.id, input.subjectId);
+      const material = subject?.materials.find((item) => item.id === input.materialId);
+      if (!subject || !material) throw new Error("Material not found");
+      if (material.status !== "indexed" || !material.textContent) throw new Error("MATERIAL_NOT_INDEXED");
+      const insights = await extractTopicInsights(material.textContent, material.sourceRef || material.name, subject.name);
+      const created = await saveTopicInsights(ctx.user.id, input.subjectId, insights);
+      return { created, total: insights.length };
     }),
     startSession: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), topicId: z.number().int().positive().optional(), durationMinutes: z.number().int().min(10).max(180) })).mutation(({ ctx, input }) => createStudySession(ctx.user.id, input)),
     updateSession: protectedProcedure.input(z.object({ sessionId: z.number().int().positive(), elapsedSeconds: z.number().int().min(0), status: z.enum(["active", "paused", "completed"]) })).mutation(({ ctx, input }) => updateStudySession(ctx.user.id, input.sessionId, input)),
