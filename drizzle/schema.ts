@@ -49,6 +49,7 @@ export const materials = mysqlTable("materials", {
   contentHash: varchar("contentHash", { length: 64 }),
   pageCount: int("pageCount"),
   detectedLanguage: varchar("detectedLanguage", { length: 12 }),
+  ocrConfidence: int("ocrConfidence"),
   textContent: text("textContent"),
   sourceRef: varchar("sourceRef", { length: 255 }),
   errorCode: varchar("errorCode", { length: 64 }),

@@ -115,6 +115,9 @@ const MAX_MATERIAL_BYTES = 20 * 1024 * 1024;
 const MATERIAL_TYPES = new Map([
   ["application/pdf", "pdf"],
   ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"],
+  ["image/png", "image"],
+  ["image/jpeg", "image"],
+  ["image/webp", "image"],
 ]);
 
 function decodeBase64Payload(payload: string) {
@@ -127,6 +130,7 @@ function decodeBase64Payload(payload: string) {
 function hasExpectedSignature(data: Buffer, kind: string) {
   if (kind === "pdf") return data.subarray(0, 5).toString("ascii") === "%PDF-";
   if (kind === "docx") return data.subarray(0, 2).toString("ascii") === "PK";
+  if (kind === "image") return data.subarray(0, 8).toString("hex") === "89504e470d0a1a0a" || data.subarray(0, 3).toString("hex") === "ffd8ff" || data.subarray(0, 4).toString("ascii") === "RIFF";
   return false;
 }
 
@@ -149,7 +153,7 @@ export async function createUploadedMaterial(userId: number, input: { subjectId:
   return { duplicate: false, materialId, jobId: Number(job[0].insertId), buffer: data };
 }
 
-export async function updateMaterialProcessing(userId: number, materialId: number, input: { status: "extracting" | "indexing" | "indexed" | "needs_review" | "failed"; textContent?: string; pageCount?: number; errorCode?: string; errorMessage?: string; detectedLanguage?: string }) {
+export async function updateMaterialProcessing(userId: number, materialId: number, input: { status: "extracting" | "indexing" | "indexed" | "needs_review" | "failed"; textContent?: string; pageCount?: number; errorCode?: string; errorMessage?: string; detectedLanguage?: string; ocrConfidence?: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(materials).set({ ...input, processedAt: ["indexed", "needs_review", "failed"].includes(input.status) ? new Date() : null }).where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
@@ -173,5 +177,5 @@ export async function retryUploadedMaterial(userId: number, materialId: number) 
   const buffer = Buffer.from(await response.arrayBuffer());
   const job = await db.insert(materialJobs).values({ userId, materialId, type: "extract", status: "queued" });
   await db.update(materials).set({ status: "queued", errorCode: null, errorMessage: null, processedAt: null }).where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
-  return { jobId: Number(job[0].insertId), buffer, kind: material.kind as "pdf" | "docx" };
+  return { jobId: Number(job[0].insertId), buffer, kind: material.kind as "pdf" | "docx" | "image" };
 }

@@ -19,14 +19,14 @@ export const appRouter = router({
     subject: protectedProcedure.input(z.object({ id: z.number().int().positive() })).query(({ ctx, input }) => getSubject(ctx.user.id, input.id)),
     createSubject: protectedProcedure.input(z.object({ name: z.string().trim().min(1).max(160), examDate: z.string().optional(), color: z.string().optional() })).mutation(({ ctx, input }) => createSubject(ctx.user.id, input)),
     addTextMaterial: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), name: z.string().min(1).max(255), kind: z.string().min(1).max(32), textContent: z.string().min(1), sourceRef: z.string().max(255).optional() })).mutation(({ ctx, input }) => addTextMaterial(ctx.user.id, input)),
-    uploadMaterial: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), name: z.string().min(1).max(255), mimeType: z.enum(["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]), base64: z.string().min(1).max(30_000_000) })).mutation(async ({ ctx, input }) => {
+    uploadMaterial: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), name: z.string().min(1).max(255), mimeType: z.enum(["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "image/png", "image/jpeg", "image/webp"]), base64: z.string().min(1).max(30_000_000) })).mutation(async ({ ctx, input }) => {
       const result = await createUploadedMaterial(ctx.user.id, input);
-      if (!result.duplicate && result.jobId) enqueueMaterialProcessing({ userId: ctx.user.id, materialId: result.materialId, jobId: result.jobId, kind: input.mimeType === "application/pdf" ? "pdf" : "docx", buffer: result.buffer });
+      if (!result.duplicate && result.jobId) enqueueMaterialProcessing({ userId: ctx.user.id, materialId: result.materialId, jobId: result.jobId, kind: input.mimeType === "application/pdf" ? "pdf" : input.mimeType.startsWith("image/") ? "image" : "docx", mimeType: input.mimeType, buffer: result.buffer });
       return { materialId: result.materialId, duplicate: result.duplicate, status: result.duplicate ? "already_uploaded" as const : "queued" as const };
     }),
     retryMaterial: protectedProcedure.input(z.object({ materialId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const result = await retryUploadedMaterial(ctx.user.id, input.materialId);
-      enqueueMaterialProcessing({ userId: ctx.user.id, materialId: input.materialId, jobId: result.jobId, kind: result.kind, buffer: result.buffer });
+      enqueueMaterialProcessing({ userId: ctx.user.id, materialId: input.materialId, jobId: result.jobId, kind: result.kind, mimeType: result.kind === "image" ? "image/png" : result.kind === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document", buffer: result.buffer });
       return { materialId: input.materialId, status: "queued" as const };
     }),
     startSession: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), topicId: z.number().int().positive().optional(), durationMinutes: z.number().int().min(10).max(180) })).mutation(({ ctx, input }) => createStudySession(ctx.user.id, input)),

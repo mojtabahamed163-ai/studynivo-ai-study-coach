@@ -3,7 +3,7 @@ import { ENV } from "../_core/env";
 export type SourceRef = { label: string; page?: number; section?: string; timestamp?: number };
 export type GroundedAnswer = { answer: string; sourceRefs: SourceRef[]; confidence: "low" | "medium" | "high"; insufficientContext: boolean; conflicts: Array<{ claim: string; sources: SourceRef[] }> };
 
-type ChatMessage = { role: "system" | "user" | "assistant"; content: string | Array<{ type: "text"; text: string }> };
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> };
 
 export async function chatCompletion(messages: ChatMessage[], options?: { model?: string; jsonSchema?: Record<string, unknown> }) {
   if (!ENV.forgeApiUrl || !ENV.forgeApiKey) throw new Error("Built-in AI is not available in this environment");
