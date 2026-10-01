@@ -1,6 +1,6 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, materials, savedItems, studySessions, subjects, topics, users, userProfiles } from "../drizzle/schema";
+import { InsertUser, flashcards, materials, quizAnswers, quizAttempts, savedItems, studySessions, subjects, topics, users, userProfiles } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { chunkText, selectRelevantChunks } from "./ai/materialProcessor";
 
@@ -118,6 +118,69 @@ export async function addSavedItem(userId: number, input: { subjectId: number; t
   const result = await db.insert(savedItems).values({ userId, subjectId: input.subjectId, title: input.title, excerpt: input.excerpt ?? null, sourceRef: input.sourceRef ?? null });
   const rows = await db.select().from(savedItems).where(and(eq(savedItems.id, Number(result[0].insertId)), eq(savedItems.userId, userId))).limit(1);
   return rows[0];
+}
+
+export async function listFlashcards(userId: number, subjectId: number, dueOnly = false) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const owner = await db.select({ id: subjects.id }).from(subjects).where(and(eq(subjects.id, subjectId), eq(subjects.userId, userId))).limit(1);
+  if (!owner[0]) throw new Error("Subject not found");
+  const rows = await db.select().from(flashcards).where(and(eq(flashcards.subjectId, subjectId), eq(flashcards.userId, userId))).orderBy(asc(flashcards.nextReviewAt));
+  return dueOnly ? rows.filter((card) => card.nextReviewAt <= new Date()) : rows;
+}
+
+export async function generateFlashcardsFromTopics(userId: number, subjectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const subject = await getSubject(userId, subjectId);
+  if (!subject) throw new Error("Subject not found");
+  const existing = await db.select({ topicId: flashcards.topicId }).from(flashcards).where(and(eq(flashcards.subjectId, subjectId), eq(flashcards.userId, userId)));
+  const existingTopics = new Set(existing.map((card) => card.topicId).filter(Boolean));
+  const fresh = subject.topics.filter((topic) => !existingTopics.has(topic.id)).slice(0, 50).map((topic) => ({ userId, subjectId, topicId: topic.id, front: `What should you remember about ${topic.name}?`, back: topic.note || `Review ${topic.name} using the source-linked material before testing yourself.`, sourceRef: topic.sourceRef || null, difficulty: topic.mastery < 50 ? "hard" as const : topic.mastery < 75 ? "medium" as const : "easy" as const }));
+  if (fresh.length) await db.insert(flashcards).values(fresh);
+  return listFlashcards(userId, subjectId);
+}
+
+export async function reviewFlashcard(userId: number, input: { cardId: number; confidence: "low" | "medium" | "high"; correct: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(flashcards).where(and(eq(flashcards.id, input.cardId), eq(flashcards.userId, userId))).limit(1);
+  const card = rows[0];
+  if (!card) throw new Error("Flashcard not found");
+  const intervalDays = input.correct ? Math.min(30, Math.max(1, card.intervalDays * (input.confidence === "high" ? 2 : input.confidence === "medium" ? 1 : 1))) : 1;
+  const nextReviewAt = new Date(Date.now() + intervalDays * 86400000);
+  await db.update(flashcards).set({ confidence: input.confidence, intervalDays, nextReviewAt, lastReviewedAt: new Date(), mistakeCount: input.correct ? card.mistakeCount : card.mistakeCount + 1 }).where(and(eq(flashcards.id, input.cardId), eq(flashcards.userId, userId)));
+  return db.select().from(flashcards).where(and(eq(flashcards.id, input.cardId), eq(flashcards.userId, userId))).limit(1).then((result) => result[0]);
+}
+
+export async function createQuizAttempt(userId: number, subjectId: number, kind: "practice" | "mock") {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const subject = await getSubject(userId, subjectId);
+  if (!subject) throw new Error("Subject not found");
+  const topicsForQuiz = (kind === "practice" ? subject.topics.filter((topic) => topic.isWeak || topic.mastery < 70) : subject.topics).slice(0, 10);
+  const questions = (topicsForQuiz.length ? topicsForQuiz : subject.topics).map((topic) => ({ topicId: topic.id, topic: topic.name, prompt: `Which action best checks reliable recall of ${topic.name}?`, options: ["Read it once", "Explain it and answer a new question", "Skip it until the exam"], answer: "Explain it and answer a new question", sourceRef: topic.sourceRef || "Subject material" }));
+  if (!questions.length) throw new Error("NO_INDEXED_TOPICS");
+  const result = await db.insert(quizAttempts).values({ userId, subjectId, kind, questions, total: questions.length });
+  return db.select().from(quizAttempts).where(and(eq(quizAttempts.id, Number(result[0].insertId)), eq(quizAttempts.userId, userId))).limit(1).then((rows) => rows[0]);
+}
+
+export async function answerQuizQuestion(userId: number, input: { attemptId: number; questionIndex: number; answer: string; confidence: "low" | "medium" | "high" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(quizAttempts).where(and(eq(quizAttempts.id, input.attemptId), eq(quizAttempts.userId, userId))).limit(1);
+  const attempt = rows[0];
+  if (!attempt || attempt.status !== "active") throw new Error("Quiz attempt not active");
+  const questions = attempt.questions as Array<{ answer: string }>;
+  const question = questions[input.questionIndex];
+  if (!question) throw new Error("Question not found");
+  const isCorrect = question.answer === input.answer;
+  await db.insert(quizAnswers).values({ userId, attemptId: input.attemptId, questionIndex: input.questionIndex, answer: input.answer, confidence: input.confidence, isCorrect });
+  const answers = await db.select().from(quizAnswers).where(and(eq(quizAnswers.attemptId, input.attemptId), eq(quizAnswers.userId, userId)));
+  const completed = answers.length >= attempt.total;
+  const score = answers.filter((answer) => answer.isCorrect).length;
+  await db.update(quizAttempts).set({ score, status: completed ? "completed" : "active", completedAt: completed ? new Date() : null }).where(and(eq(quizAttempts.id, input.attemptId), eq(quizAttempts.userId, userId)));
+  return { isCorrect, score, total: attempt.total, completed };
 }
 
 export async function searchSubjectMaterials(userId: number, subjectId: number, query: string, limit = 8) {
