@@ -34,21 +34,21 @@ export const appRouter = router({
     saveItem: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), title: z.string().min(1).max(255), excerpt: z.string().optional(), sourceRef: z.string().max(255).optional() })).mutation(({ ctx, input }) => addSavedItem(ctx.user.id, input)),
   }),
   ai: router({
-    askTextMaterial: protectedProcedure.input(z.object({ subjectName: z.string().min(1).max(160), question: z.string().min(2).max(1200), context: z.string().min(1).max(16000), sourceRef: z.string().max(255).optional() })).mutation(async ({ input }) => {
+    askTextMaterial: protectedProcedure.input(z.object({ subjectName: z.string().min(1).max(160), question: z.string().min(2).max(1200), context: z.string().min(1).max(16000), sourceRef: z.string().max(255).optional(), locale: z.enum(["en", "ar", "es", "pt", "fr", "de", "it", "tr", "ja", "ko", "zh", "hi", "ru", "id"]).default("en") })).mutation(async ({ input }) => {
       const chunks = selectRelevantChunks(chunkText(input.context), input.question, 5);
       if (!chunks.length) return { answer: "The available material is not enough to answer this yet. Add clearer notes or ask about a concept that appears in the source.", sourceRefs: [], confidence: "low" as const, insufficientContext: true, conflicts: [] };
       const context = chunks.map((chunk) => `[${input.sourceRef || chunk.sourceRef}] ${chunk.text}`).join("\n\n");
-      const answer = await chatCompletion([{ role: "system", content: groundedSystemPrompt(input.subjectName, context) }, { role: "user", content: input.question }]);
+      const answer = await chatCompletion([{ role: "system", content: groundedSystemPrompt(input.subjectName, context, input.locale) }, { role: "user", content: input.question }]);
       return { answer, sourceRefs: chunks.map((chunk) => ({ label: input.sourceRef || chunk.sourceRef })), confidence: "medium" as const, insufficientContext: false, conflicts: [] };
     }),
-    askMaterial: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), question: z.string().min(2).max(1200) })).mutation(async ({ ctx, input }) => {
+    askMaterial: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), question: z.string().min(2).max(1200), locale: z.enum(["en", "ar", "es", "pt", "fr", "de", "it", "tr", "ja", "ko", "zh", "hi", "ru", "id"]).default("en") })).mutation(async ({ ctx, input }) => {
       const subject = await getSubject(ctx.user.id, input.subjectId);
       if (!subject) throw new Error("Subject not found");
       const chunks = subject.materials.flatMap((material) => material.textContent ? chunkText(material.textContent).map((chunk) => ({ ...chunk, sourceRef: material.sourceRef || chunk.sourceRef })) : []);
       const relevant = selectRelevantChunks(chunks, input.question, 5);
       if (!relevant.length) return { answer: "The available material is not enough to answer this yet. Add clearer notes or a text source to continue.", sourceRefs: [], confidence: "low" as const, insufficientContext: true, conflicts: [] };
       const context = relevant.map((chunk) => `[${chunk.sourceRef}] ${chunk.text}`).join("\n\n");
-      const answer = await chatCompletion([{ role: "system", content: groundedSystemPrompt(subject.name, context) }, { role: "user", content: input.question }]);
+      const answer = await chatCompletion([{ role: "system", content: groundedSystemPrompt(subject.name, context, input.locale) }, { role: "user", content: input.question }]);
       return { answer, sourceRefs: relevant.map((chunk) => ({ label: chunk.sourceRef })), confidence: "medium" as const, insufficientContext: false, conflicts: [] };
     }),
   }),

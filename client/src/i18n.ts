@@ -1,18 +1,6 @@
-export type Locale =
-  | "en"
-  | "ar"
-  | "es"
-  | "pt"
-  | "fr"
-  | "de"
-  | "it"
-  | "tr"
-  | "ja"
-  | "ko"
-  | "zh"
-  | "hi"
-  | "ru"
-  | "id";
+import { generatedCatalogs } from "./i18n.generated";
+
+export type Locale = "en" | "ar" | "es" | "pt" | "fr" | "de" | "it" | "tr" | "ja" | "ko" | "zh" | "hi" | "ru" | "id";
 
 export const supportedLocales: Array<{ code: Locale; label: string; dir: "ltr" | "rtl" }> = [
   { code: "en", label: "English", dir: "ltr" },
@@ -31,59 +19,34 @@ export const supportedLocales: Array<{ code: Locale; label: string; dir: "ltr" |
   { code: "id", label: "Bahasa Indonesia", dir: "ltr" },
 ];
 
-const english = {
-  home: "Home",
-  subjects: "Subjects",
-  plan: "Study plan",
-  review: "Review me",
-  progress: "Progress",
-  saved: "Saved items",
-  settings: "Settings",
-  startStudying: "Start studying",
-  whatNext: "What should you study now?",
-  goodMorning: "Good morning",
-  goodAfternoon: "Good afternoon",
-  goodEvening: "Good evening",
-  signIn: "Sign in",
-  signOut: "Sign out",
-  createSubject: "Create subject",
-  todayGoal: "Today's goal",
-  streak: "Study streak",
-  overallProgress: "Overall progress",
-  upcomingExams: "Upcoming exams",
-  weakTopics: "Weak topics",
-};
+export type TranslationKey = keyof typeof generatedCatalogs.en;
+export const dictionary = generatedCatalogs;
+let activeLocale: Locale = "en";
 
-const arabic: typeof english = {
-  home: "الرئيسية",
-  subjects: "المواد",
-  plan: "خطة الدراسة",
-  review: "راجعني",
-  progress: "التقدم",
-  saved: "العناصر المحفوظة",
-  settings: "الإعدادات",
-  startStudying: "ابدأ الدراسة",
-  whatNext: "ماذا ينبغي أن تدرس الآن؟",
-  goodMorning: "صباح الخير",
-  goodAfternoon: "مساء الخير",
-  goodEvening: "مساء الخير",
-  signIn: "تسجيل الدخول",
-  signOut: "تسجيل الخروج",
-  createSubject: "إنشاء مادة",
-  todayGoal: "هدف اليوم",
-  streak: "سلسلة الدراسة",
-  overallProgress: "التقدم العام",
-  upcomingExams: "الاختبارات القادمة",
-  weakTopics: "المواضيع الضعيفة",
-};
-
-export type TranslationKey = keyof typeof english;
-export const dictionary = { en: english, ar: arabic } as const;
+export function setActiveLocale(locale: Locale) {
+  activeLocale = locale;
+}
 
 export function getDictionary(locale: Locale) {
-  return dictionary[locale as keyof typeof dictionary] ?? english;
+  return dictionary[locale] ?? dictionary.en;
+}
+
+export function trStatic(source: string, locale: Locale = activeLocale) {
+  const catalog = dictionary[locale] as Record<string, string> | undefined;
+  return catalog?.[source] ?? source;
 }
 
 export function getDirection(locale: Locale) {
   return supportedLocales.find((item) => item.code === locale)?.dir ?? "ltr";
+}
+
+export function formatExamText(date: string | undefined, locale: Locale = activeLocale) {
+  if (!date) return trStatic("No exam date", locale);
+  const days = Math.max(0, Math.ceil((new Date(date).getTime() - Date.now()) / 86400000));
+  if (days === 0) return trStatic("Exam today", locale);
+  return new Intl.RelativeTimeFormat(locale, { numeric: "always" }).format(days, "day");
+}
+
+export function formatNumber(value: number, locale: Locale = activeLocale) {
+  return new Intl.NumberFormat(locale).format(value);
 }
