@@ -5,7 +5,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { chatCompletion, groundedSystemPrompt } from "./ai/client";
 import { chunkText, selectRelevantChunks } from "./ai/materialProcessor";
-import { addSavedItem, addTextMaterial, createStudySession, createSubject, createUploadedMaterial, getSubject, listSubjects, retryUploadedMaterial, saveTopicInsights, updateStudySession } from "./db";
+import { addSavedItem, addTextMaterial, createStudySession, createSubject, createUploadedMaterial, getSubject, listSubjects, retryUploadedMaterial, saveTopicInsights, searchSubjectMaterials, updateStudySession } from "./db";
 import { extractTopicInsights } from "./ai/materialAnalysis";
 import { enqueueMaterialProcessing } from "./materialPipeline";
 
@@ -39,6 +39,7 @@ export const appRouter = router({
       const created = await saveTopicInsights(ctx.user.id, input.subjectId, insights);
       return { created, total: insights.length };
     }),
+    searchMaterials: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), query: z.string().trim().min(2).max(200) })).query(({ ctx, input }) => searchSubjectMaterials(ctx.user.id, input.subjectId, input.query)),
     startSession: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), topicId: z.number().int().positive().optional(), durationMinutes: z.number().int().min(10).max(180) })).mutation(({ ctx, input }) => createStudySession(ctx.user.id, input)),
     updateSession: protectedProcedure.input(z.object({ sessionId: z.number().int().positive(), elapsedSeconds: z.number().int().min(0), status: z.enum(["active", "paused", "completed"]) })).mutation(({ ctx, input }) => updateStudySession(ctx.user.id, input.sessionId, input)),
     saveItem: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), title: z.string().min(1).max(255), excerpt: z.string().optional(), sourceRef: z.string().max(255).optional() })).mutation(({ ctx, input }) => addSavedItem(ctx.user.id, input)),

@@ -2,6 +2,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, materials, savedItems, studySessions, subjects, topics, users, userProfiles } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { chunkText, selectRelevantChunks } from "./ai/materialProcessor";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -117,6 +118,22 @@ export async function addSavedItem(userId: number, input: { subjectId: number; t
   const result = await db.insert(savedItems).values({ userId, subjectId: input.subjectId, title: input.title, excerpt: input.excerpt ?? null, sourceRef: input.sourceRef ?? null });
   const rows = await db.select().from(savedItems).where(and(eq(savedItems.id, Number(result[0].insertId)), eq(savedItems.userId, userId))).limit(1);
   return rows[0];
+}
+
+export async function searchSubjectMaterials(userId: number, subjectId: number, query: string, limit = 8) {
+  const subject = await getSubject(userId, subjectId);
+  if (!subject) throw new Error("Subject not found");
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) return [];
+  const searchable = subject.materials.flatMap((material) => {
+    if (!material.textContent || material.status !== "indexed") return [];
+    return selectRelevantChunks(chunkText(material.textContent), normalizedQuery, limit).map((chunk) => {
+      const timestamp = material.kind === "audio" ? chunk.text.match(/\[(\d+:\d{2})\]/)?.[1] : undefined;
+      const page = (material.sourceRef || material.name).match(/(?:page|p\.?|صفحة)\s*(\d+)/i)?.[1];
+      return { materialId: material.id, materialName: material.name, excerpt: chunk.text, sourceRef: material.sourceRef || material.name, section: chunk.sourceRef, page: page ? Number(page) : undefined, timestamp, score: chunk.text.toLocaleLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).filter((term) => normalizedQuery.toLocaleLowerCase().includes(term)).length };
+    });
+  });
+  return searchable.sort((a, b) => b.score - a.score || a.materialId - b.materialId).slice(0, limit);
 }
 
 import { createHash } from "node:crypto";
