@@ -12,6 +12,7 @@ StudyNivo هو **مدير دراسة شخصي يعمل بالذكاء الاصط
 
 - `docs/برومبت.txt`: المواصفة الأصلية الكاملة التي قدمها صاحب المشروع.
 - `docs/PLAN.md`: خطة التنفيذ وقرارات التصميم التقنية.
+- `MANUS_SETUP.md`: خطوات ربط المستودع وتشغيله داخل حساب Manus آخر.
 - `docs/PROJECT_HANDOFF.md`: هذا السجل، ويجب تحديثه مع كل مرحلة كبيرة.
 - `docs/speech-storage-notes.md`: ملاحظات عقد Speech والتخزين.
 - `client/public/manus-routes.json`: بيان المسارات المطلوب إبقاؤه متزامنًا مع الواجهة.
@@ -139,4 +140,3 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 | `3b4786b` | رفع الصوت وSpeech transcription والتوقيتات |
 | `57ecfc0` | تحليل Topics grounded وحفظها |
 | `905c3ff` | استبدال خلفية بطاقة الإيقاع برسمة تعليمية SVG |
-
