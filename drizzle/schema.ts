@@ -42,13 +42,34 @@ export const materials = mysqlTable("materials", {
   subjectId: int("subjectId").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   kind: varchar("kind", { length: 32 }).notNull(),
-  status: mysqlEnum("status", ["queued", "indexed", "needs_review"]).default("queued").notNull(),
+  status: mysqlEnum("status", ["queued", "extracting", "indexing", "indexed", "needs_review", "failed"]).default("queued").notNull(),
   storageKey: varchar("storageKey", { length: 512 }),
+  mimeType: varchar("mimeType", { length: 120 }),
   sizeBytes: int("sizeBytes"),
+  contentHash: varchar("contentHash", { length: 64 }),
+  pageCount: int("pageCount"),
+  detectedLanguage: varchar("detectedLanguage", { length: 12 }),
   textContent: text("textContent"),
   sourceRef: varchar("sourceRef", { length: 255 }),
+  errorCode: varchar("errorCode", { length: 64 }),
+  errorMessage: text("errorMessage"),
+  processedAt: timestamp("processedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({ subjectIndex: index("materials_subject_idx").on(table.userId, table.subjectId) }));
+
+
+export const materialJobs = mysqlTable("material_jobs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  materialId: int("materialId").notNull(),
+  type: mysqlEnum("type", ["extract", "index"]).default("extract").notNull(),
+  status: mysqlEnum("job_status", ["queued", "running", "completed", "failed"]).default("queued").notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  errorMessage: text("errorMessage"),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({ userIndex: index("material_jobs_user_idx").on(table.userId), materialIndex: index("material_jobs_material_idx").on(table.materialId) }));
 
 export const topics = mysqlTable("topics", {
   id: int("id").autoincrement().primaryKey(),
@@ -89,5 +110,6 @@ export type InsertUser = typeof users.$inferInsert;
 export type Subject = typeof subjects.$inferSelect;
 export type Material = typeof materials.$inferSelect;
 export type Topic = typeof topics.$inferSelect;
+export type MaterialJob = typeof materialJobs.$inferSelect;
 export type StudySession = typeof studySessions.$inferSelect;
 export type SavedItem = typeof savedItems.$inferSelect;

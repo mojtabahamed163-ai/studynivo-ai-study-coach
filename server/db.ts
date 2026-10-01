@@ -106,3 +106,72 @@ export async function addSavedItem(userId: number, input: { subjectId: number; t
   const rows = await db.select().from(savedItems).where(and(eq(savedItems.id, Number(result[0].insertId)), eq(savedItems.userId, userId))).limit(1);
   return rows[0];
 }
+
+import { createHash } from "node:crypto";
+import { materialJobs } from "../drizzle/schema";
+import { storageGetSignedUrl, storagePut } from "./storage";
+
+const MAX_MATERIAL_BYTES = 20 * 1024 * 1024;
+const MATERIAL_TYPES = new Map([
+  ["application/pdf", "pdf"],
+  ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"],
+]);
+
+function decodeBase64Payload(payload: string) {
+  const clean = payload.replace(/^data:[^;]+;base64,/, "");
+  const data = Buffer.from(clean, "base64");
+  if (!data.length || data.length > MAX_MATERIAL_BYTES) throw new Error("FILE_TOO_LARGE_OR_EMPTY");
+  return data;
+}
+
+function hasExpectedSignature(data: Buffer, kind: string) {
+  if (kind === "pdf") return data.subarray(0, 5).toString("ascii") === "%PDF-";
+  if (kind === "docx") return data.subarray(0, 2).toString("ascii") === "PK";
+  return false;
+}
+
+export async function createUploadedMaterial(userId: number, input: { subjectId: number; name: string; mimeType: string; base64: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const owner = await db.select({ id: subjects.id }).from(subjects).where(and(eq(subjects.id, input.subjectId), eq(subjects.userId, userId))).limit(1);
+  if (!owner[0]) throw new Error("Subject not found");
+  const kind = MATERIAL_TYPES.get(input.mimeType);
+  if (!kind) throw new Error("UNSUPPORTED_FILE_TYPE");
+  const data = decodeBase64Payload(input.base64);
+  if (!hasExpectedSignature(data, kind)) throw new Error("FILE_SIGNATURE_MISMATCH");
+  const contentHash = createHash("sha256").update(data).digest("hex");
+  const duplicate = await db.select({ id: materials.id }).from(materials).where(and(eq(materials.userId, userId), eq(materials.subjectId, input.subjectId), eq(materials.contentHash, contentHash))).limit(1);
+  if (duplicate[0]) return { duplicate: true, materialId: duplicate[0].id, buffer: data };
+  const stored = await storagePut(`subjects/${input.subjectId}/${input.name}`, data, input.mimeType);
+  const inserted = await db.insert(materials).values({ userId, subjectId: input.subjectId, name: input.name, kind, mimeType: input.mimeType, storageKey: stored.key, sizeBytes: data.length, contentHash, status: "queued" });
+  const materialId = Number(inserted[0].insertId);
+  const job = await db.insert(materialJobs).values({ userId, materialId, type: "extract", status: "queued" });
+  return { duplicate: false, materialId, jobId: Number(job[0].insertId), buffer: data };
+}
+
+export async function updateMaterialProcessing(userId: number, materialId: number, input: { status: "extracting" | "indexing" | "indexed" | "needs_review" | "failed"; textContent?: string; pageCount?: number; errorCode?: string; errorMessage?: string; detectedLanguage?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(materials).set({ ...input, processedAt: ["indexed", "needs_review", "failed"].includes(input.status) ? new Date() : null }).where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
+}
+
+export async function updateMaterialJob(userId: number, jobId: number, input: { status: "running" | "completed" | "failed"; attempts?: number; errorMessage?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(materialJobs).set({ ...input, startedAt: input.status === "running" ? new Date() : undefined, completedAt: ["completed", "failed"].includes(input.status) ? new Date() : undefined }).where(and(eq(materialJobs.id, jobId), eq(materialJobs.userId, userId)));
+}
+
+export async function retryUploadedMaterial(userId: number, materialId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(materials).where(and(eq(materials.id, materialId), eq(materials.userId, userId))).limit(1);
+  const material = rows[0];
+  if (!material?.storageKey || !material.mimeType) throw new Error("MATERIAL_NOT_RETRYABLE");
+  const signedUrl = await storageGetSignedUrl(material.storageKey);
+  const response = await fetch(signedUrl);
+  if (!response.ok) throw new Error("MATERIAL_DOWNLOAD_FAILED");
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const job = await db.insert(materialJobs).values({ userId, materialId, type: "extract", status: "queued" });
+  await db.update(materials).set({ status: "queued", errorCode: null, errorMessage: null, processedAt: null }).where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
+  return { jobId: Number(job[0].insertId), buffer, kind: material.kind as "pdf" | "docx" };
+}
