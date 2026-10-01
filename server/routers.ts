@@ -5,7 +5,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { chatCompletion, groundedSystemPrompt } from "./ai/client";
 import { chunkText, selectRelevantChunks } from "./ai/materialProcessor";
-import { addSavedItem, addTextMaterial, createStudySession, createSubject, createUploadedMaterial, getSubject, listSubjects, retryUploadedMaterial, saveTopicInsights, searchSubjectMaterials, updateStudySession, listFlashcards, generateFlashcardsFromTopics, reviewFlashcard, createQuizAttempt, answerQuizQuestion } from "./db";
+import { addSavedItem, addTextMaterial, createStudySession, createSubject, createUploadedMaterial, getSubject, listSubjects, retryUploadedMaterial, saveTopicInsights, searchSubjectMaterials, updateStudySession, listFlashcards, generateFlashcardsFromTopics, reviewFlashcard, createQuizAttempt, answerQuizQuestion, listDueFlashcardsForUser } from "./db";
 import { extractTopicInsights } from "./ai/materialAnalysis";
 import { enqueueMaterialProcessing } from "./materialPipeline";
 
@@ -41,6 +41,7 @@ export const appRouter = router({
     }),
     searchMaterials: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), query: z.string().trim().min(2).max(200) })).query(({ ctx, input }) => searchSubjectMaterials(ctx.user.id, input.subjectId, input.query)),
     generateFlashcards: protectedProcedure.input(z.object({ subjectId: z.number().int().positive() })).mutation(({ ctx, input }) => generateFlashcardsFromTopics(ctx.user.id, input.subjectId)),
+    reviewQueue: protectedProcedure.query(({ ctx }) => listDueFlashcardsForUser(ctx.user.id)),
     flashcards: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), dueOnly: z.boolean().optional() })).query(({ ctx, input }) => listFlashcards(ctx.user.id, input.subjectId, input.dueOnly)),
     reviewFlashcard: protectedProcedure.input(z.object({ cardId: z.number().int().positive(), correct: z.boolean(), confidence: z.enum(["low", "medium", "high"]) })).mutation(({ ctx, input }) => reviewFlashcard(ctx.user.id, input)),
     createQuiz: protectedProcedure.input(z.object({ subjectId: z.number().int().positive(), kind: z.enum(["practice", "mock"]) })).mutation(({ ctx, input }) => createQuizAttempt(ctx.user.id, input.subjectId, input.kind)),

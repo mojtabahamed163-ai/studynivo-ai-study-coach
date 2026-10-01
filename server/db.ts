@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, flashcards, materials, quizAnswers, quizAttempts, savedItems, studySessions, subjects, topics, users, userProfiles } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -118,6 +118,12 @@ export async function addSavedItem(userId: number, input: { subjectId: number; t
   const result = await db.insert(savedItems).values({ userId, subjectId: input.subjectId, title: input.title, excerpt: input.excerpt ?? null, sourceRef: input.sourceRef ?? null });
   const rows = await db.select().from(savedItems).where(and(eq(savedItems.id, Number(result[0].insertId)), eq(savedItems.userId, userId))).limit(1);
   return rows[0];
+}
+
+export async function listDueFlashcardsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(flashcards).where(and(eq(flashcards.userId, userId), lte(flashcards.nextReviewAt, new Date()))).orderBy(asc(flashcards.nextReviewAt));
 }
 
 export async function listFlashcards(userId: number, subjectId: number, dueOnly = false) {
