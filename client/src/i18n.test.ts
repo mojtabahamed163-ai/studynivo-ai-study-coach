@@ -16,4 +16,13 @@ describe("StudyNivo localization", () => {
     expect(trStatic("Settings.", "ar")).not.toBe("Settings.");
     expect(trStatic("Settings.", "ja")).not.toBe("Settings.");
   });
+
+  it("translates the landing-page feature copy in every supported locale", () => {
+    const keys = ["Turn lectures, notes, images, and audio into topics, explanations, and source-linked summaries.", "Get questions that fit the subject — from definitions to calculations and open-ended reasoning.", "Separate subject spaces", "30 minutes"];
+    for (const locale of supportedLocales) {
+      for (const key of keys) {
+        expect(trStatic(key, locale.code)).toBeTruthy();
+      }
+    }
+  });
 });

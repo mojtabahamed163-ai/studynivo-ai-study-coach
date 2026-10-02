@@ -33,7 +33,7 @@ export function MaterialSearch({
       excerpt: result.excerpt,
       sourceRef: [
         result.sourceRef,
-        result.page ? `Page ${result.page}` : result.section,
+        result.page ? `${trStatic("Page")} ${result.page}` : result.section,
         result.timestamp ? `at ${result.timestamp}` : "",
       ]
         .filter(Boolean)
@@ -120,7 +120,7 @@ export function MaterialSearch({
                   <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-[#7f9090]">
                     <span className="source-pill">{result.section}</span>
                     {result.page && (
-                      <span className="source-pill">Page {result.page}</span>
+                      <span className="source-pill">{trStatic("Page")} {result.page}</span>
                     )}
                     {result.timestamp && (
                       <span className="source-pill">{result.timestamp}</span>
