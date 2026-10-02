@@ -43,6 +43,13 @@
       "when": 1790862000000,
       "tag": "0005_studynivo_learning_loop",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1790949519817,
+      "tag": "0006_daffy_richard_fisk",
+      "breakpoints": true
     }
   ]
 }
