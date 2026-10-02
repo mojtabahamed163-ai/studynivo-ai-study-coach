@@ -46,7 +46,7 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 
 ### قاعدة البيانات والخادم
 
-تمت إضافة جداول/كيانات `userProfiles`, `subjects`, `materials`, `materialJobs`, `topics`, `studySessions`, و`savedItems`، مع migrations Drizzle حتى `drizzle/0004_nosy_pestilence.sql`. الاستعلامات تتحقق من `userId` وملكية المادة/الموضوع قبل القراءة أو التعديل.
+تمت إضافة جداول/كيانات `userProfiles`, `subjects`, `materials`, `materialJobs`, `topics`, `studySessions`, و`savedItems`، مع migrations Drizzle حتى `drizzle/0005_studynivo_learning_loop.sql`. الاستعلامات تتحقق من `userId` وملكية المادة/الموضوع قبل القراءة أو التعديل.
 
 ### رفع المواد ومعالجتها
 
@@ -86,11 +86,11 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 آخر فحص مؤكد قبل التسليم:
 
 - `pnpm check`: ناجح.
-- `pnpm test`: ناجح؛ 6 ملفات اختبار و12 اختبارًا.
+- `pnpm test`: ناجح؛ 6 ملفات اختبار و13 اختبارًا.
 - `pnpm build`: ناجح. يوجد تحذير معروف عن script إعداد المنصة وحجم bundle، لكنه لا يفشل البناء.
 - `GET /api/health`: يعيد `{"status":"ok"}`.
 - `GET /manus-routes.json`: يعيد JSON صالحًا بكل المسارات الحالية.
-- آخر checkpoint في Manus قبل هذه الحزمة: `905c3ff`.
+- آخر checkpoint منشور ومؤكد: `83b5ae39b99f4c4fb00cd42ba775ea9cdbe4deaf`، والرابط العام: `https://studynivo-h3ddjjkx.manus.space`.
 
 ## 5.2 ما أُنجز في مرحلة حلقة التعلم الحالية
 
@@ -121,8 +121,8 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 6. **حفظ اللغة في userProfiles** يحتاج ربطًا صريحًا بواجهة الإعدادات بدل الاعتماد الأساسي على الحالة المحلية.
 7. **تسجيل الصوت داخل التطبيق غير موجود عمدًا**؛ التطبيق يرفع ملفًا صوتيًا جاهزًا فقط، كما نصت الخطة.
 8. **Email/Password وGoogle OAuth** لم يُشغّلا؛ Manus OAuth هو المسار الفعلي الحالي، ولا يجب إضافة أزرار نجاح وهمية.
-9. **النشر العام النهائي** لم يُثبت في هذه المرحلة. حدثت محاولات نشر سابقة وفشلت بسبب عطل BuildKit في `/run/buildkit/buildkitd.sock`، وليس بسبب فشل `check` أو `build` المحلي. لا تُسمِّ Preview منشورًا نهائيًا قبل ظهور نتيجة نشر مؤكدة من Dashboard.
-10. لا توجد اختبارات browser end-to-end مكتملة؛ التحقق الحالي code/build/API smoke tests.
+9. **النشر العام النهائي** مكتمل ومؤكد بالإصدار `83b5ae3` على الرابط `https://studynivo-h3ddjjkx.manus.space`.
+10. تم تنفيذ اختبار متصفح عام للمسارات، المصادقة للزائر، اللغات الأربع عشرة، RTL، وصندوق أخطاء JavaScript؛ لا توجد أخطاء في هذه المسارات. ما يزال الاختبار الكامل بعد تسجيل الدخول ورفع ملفات حقيقية يحتاج حساب طالب وبيانات اختبار.
 
 ## 7. ما فشل أو تعثر وكيفية التعامل معه
 
@@ -157,3 +157,46 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 | `3b4786b` | رفع الصوت وSpeech transcription والتوقيتات |
 | `57ecfc0` | تحليل Topics grounded وحفظها |
 | `905c3ff` | استبدال خلفية بطاقة الإيقاع برسمة تعليمية SVG |
+
+
+## 11. آخر تحديث شامل — جاهزية النقل إلى حساب Manus آخر
+
+### ما أُنجز بعد آخر سجل سابق
+
+- اكتمل البحث grounded داخل المواد مع مقتطفات ومراجع وحفظ النتائج.
+- اكتملت حلقة التعلم المحفوظة: Flashcards، Review Me، Quiz Attempts وQuiz Answers مع ownership وdue review.
+- اكتملت ترجمة الواجهة إلى اللغات الأربع عشرة، مع اختبار i18n وRTL للعربية.
+- أُنشئ دليل طالب مختصر بالعربية، ثم دليل موحد بكل اللغات في `docs/STUDENT_GUIDE_ALL_LANGUAGES.md`.
+- استُبدلت رسمة بطاقة الإيقاع داخل لوحة التحكم بمشهد دراسة واضح في `client/src/components/ProfileIllustration.tsx`.
+- استُبدلت أيقونة التعريف الصغيرة للتطبيق قبل فتحه بأيقونة تعليمية جديدة: كتاب مفتوح وشرارة تركيز، بلا شخص أو رموز دينية أو تداول.
+- الأيقونة الرسمية الدائمة مستخدمة في `app.config.ts`، ومضافة كـfavicon وApple touch icon في `client/index.html`.
+- تم نشر الإصدار الأخير رسميًا: `83b5ae39b99f4c4fb00cd42ba775ea9cdbe4deaf`.
+
+### نقل المشروع إلى حساب Manus آخر
+
+1. اربط مستودع GitHub `mojtabahamed163-ai/studynivo-ai-study-coach` على الفرع `main`.
+2. اقرأ `MANUS_SETUP.md` ثم هذا الملف و`docs/PLAN.md` و`docs/برومبت.txt`.
+3. فعّل Web / Server وDatabase وManus Authentication وStorage وService API/AI/Speech من إعدادات الحساب الجديد.
+4. لا تنشئ مشروعًا فارغًا ولا تنسخ الملفات يدويًا؛ استخدم المستودع نفسه حتى يبقى التاريخ وDrizzle migrations والوثائق كاملة.
+5. شغّل `pnpm install`, ثم `pnpm check`, `pnpm test`, `pnpm build`, و`pnpm db:migrate` عند ربط قاعدة البيانات.
+6. اترك remote الخاص بـManus للـcheckpoint إن كان موجودًا، واستخدم remote باسم `github` لمزامنة GitHub. لا تستخدم force-push.
+
+### ما يحتاج عملًا لاحقًا
+
+- اختبار end-to-end بعد تسجيل الدخول بحساب اختباري: إنشاء مادة، رفع PDF/DOCX/صورة/صوت، انتظار المعالجة، Analyze topics، Ask Your Material، Flashcards، Practice Test، Review Me وحفظ العناصر.
+- تحسين retrieval الدلالي بدل إعادة تقسيم النص عند البحث.
+- فصل Full Mock Exam عن Practice Test وتوسيع تقييمه.
+- دمج أخطاء الاختبارات والثقة مع Study Manager وReview Me.
+- حفظ locale في userProfiles بدل localStorage فقط.
+
+### آخر commits المهمة
+
+| Commit | الوصف |
+|---|---|
+| `affc1a9` | البحث grounded داخل المواد |
+| `66c0ddc` | البطاقات والاختبارات المحفوظة |
+| `0dcf5da` | طابور المراجعة العام |
+| `c359ff7` | إكمال الترجمات متعددة اللغات |
+| `fa51de2` | دليل الطالب بكل اللغات |
+| `0bd4dba` | استبدال رسم لوحة التحكم بمشهد دراسة |
+| `83b5ae3` | تعيين أيقونة StudyNivo التعليمية الرسمية ونشرها |
