@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { formatExamText, getDirection, setActiveLocale, supportedLocales, trStatic, type Locale } from "@/i18n";
 import { ProfileIllustration } from "@/components/ProfileIllustration";
@@ -33,6 +32,7 @@ import {
   MessageCircle,
   NotebookTabs,
   Pause,
+  Phone,
   Play,
   Plus,
   RotateCcw,
@@ -144,7 +144,7 @@ function LocalePicker({ locale, onChange }: { locale: Locale; onChange: (locale:
 }
 
 function Landing({ onLocale, locale }: { onLocale: (locale: Locale) => void; locale: Locale }) {
-  const login = () => { try { startLogin(); } catch (error) { console.error(error); } };
+  const login = () => { window.location.href = "/login"; };
   return <div className="landing-shell" dir={getDirection(locale)}>
     <nav className="landing-nav">
       <Logo />
@@ -298,11 +298,53 @@ function PracticeTest({ subjectId, workspace, setWorkspace, onNavigate }: { subj
 function NotFoundView({ onNavigate }: { onNavigate: (path: string) => void }) { return <div className="mx-auto max-w-xl py-16 text-center"><div className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#eaf4f1] text-[#0f766e]"><Search className="size-6" /></div><div className="eyebrow mt-6">{trStatic("Page not found")}</div><h1 className="mt-2 text-3xl font-extrabold tracking-[-.05em]">{trStatic("That study path does not exist.")}</h1><p className="mt-3 text-sm leading-6 text-[#7a898b]">{trStatic("The route may be old or the subject may no longer be in your workspace.")}</p><button className="btn-primary mt-6" onClick={() => onNavigate("/dashboard")}>{trStatic("Back to dashboard")}<ArrowRight className="size-4" /></button></div>; }
 
 function AuthGate() {
-  const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [name, setName] = useState(""); const [mode, setMode] = useState<"login" | "register">("login"); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
-  const providers = [{ id: "google" as const, label: "Continue with Google", mark: "G", className: "bg-white text-[#4285f4]" }, { id: "apple" as const, label: "Continue with Apple", mark: "", className: "bg-[#171717] text-white" }, { id: "microsoft" as const, label: "Continue with Microsoft", mark: "⊞", className: "bg-white text-[#2563eb]" }];
-  const login = (provider: "google" | "apple" | "microsoft") => { try { startLogin(provider); } catch (cause) { console.error(cause); } };
-  const submitEmail = async (event: React.FormEvent) => { event.preventDefault(); setBusy(true); setError(""); try { const response = await fetch("/api/auth/email", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password, name, mode }) }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "Email authentication failed"); window.location.href = "/"; } catch (cause) { setError(cause instanceof Error ? cause.message : "Email authentication failed"); } finally { setBusy(false); } };
-  return <div className="landing-shell grid min-h-screen place-items-center"><div className="auth-card card text-center"><div className="mx-auto w-fit"><Logo /></div><div className="mt-8 grid size-14 place-items-center rounded-2xl bg-[#eaf4f1] text-[#0f766e]"><GraduationCap className="size-7" /></div><h1 className="mt-5 text-2xl font-extrabold tracking-[-.04em]">{trStatic("Your study space is private.")}</h1><p className="mt-3 text-sm leading-6 text-[#77868a]">{trStatic("Sign in to access your subjects, materials, progress, and personalized next step.")}</p><div className="mt-7 grid gap-2.5">{providers.map((provider) => <button key={provider.id} className={`flex w-full items-center justify-center gap-3 rounded-xl border border-[#e1e9e5] px-4 py-3 text-sm font-extrabold shadow-[0_4px_14px_rgba(38,71,60,.05)] transition hover:-translate-y-0.5 ${provider.className}`} onClick={() => login(provider.id)}><span className="grid size-5 place-items-center text-lg leading-none">{provider.mark}</span><span>{trStatic(provider.label)}</span></button>)}</div><div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[.16em] text-[#a0abaa]"><span className="h-px flex-1 bg-[#e5ece9]" />{trStatic("Or use email")}<span className="h-px flex-1 bg-[#e5ece9]" /></div><form className="grid gap-2.5 text-left" onSubmit={submitEmail}>{mode === "register" && <input className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("Your name")} value={name} onChange={(event) => setName(event.target.value)} />}<input required type="email" className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("Email address")} value={email} onChange={(event) => setEmail(event.target.value)} /><input required minLength={8} type="password" className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("Password (8+ characters)")} value={password} onChange={(event) => setPassword(event.target.value)} />{error && <p className="text-xs font-semibold text-[#b14b45]">{error}</p>}<button disabled={busy} className="btn-primary w-full disabled:opacity-60" type="submit">{busy ? trStatic("Please wait...") : mode === "login" ? trStatic("Continue with email") : trStatic("Create account")}<Mail className="size-4" /></button></form><button className="mt-4 text-xs font-bold text-[#0f766e]" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>{mode === "login" ? trStatic("Create a new account") : trStatic("Already have an account? Sign in")}</button><p className="mt-4 text-[11px] leading-5 text-[#9aa5a5]">{trStatic("StudyNivo authentication is independent from Manus.")}</p></div></div>;
+  const [method, setMethod] = useState<"email" | "phone">("email");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submitCredentials = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/credentials", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ method, identifier, password, name, mode }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Authentication failed");
+      window.location.href = "/";
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Authentication failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <div className="landing-shell grid min-h-screen place-items-center">
+    <div className="auth-card card text-center">
+      <div className="mx-auto w-fit"><Logo /></div>
+      <div className="mt-8 grid size-14 place-items-center rounded-2xl bg-[#eaf4f1] text-[#0f766e]"><GraduationCap className="size-7" /></div>
+      <h1 className="mt-5 text-2xl font-extrabold tracking-[-.04em]">{trStatic("Your study space is private.")}</h1>
+      <p className="mt-3 text-sm leading-6 text-[#77868a]">{trStatic("Sign in with your email or phone number to access your study space.")}</p>
+      <div className="mt-7 grid grid-cols-2 gap-2 rounded-xl bg-[#f1f6f3] p-1">
+        <button type="button" className={`rounded-lg px-3 py-2.5 text-xs font-extrabold transition ${method === "email" ? "bg-white text-[#0f766e] shadow-sm" : "text-[#81908f]"}`} onClick={() => { setMethod("email"); setIdentifier(""); setError(""); }}><Mail className="mr-1.5 inline size-4" />{trStatic("Email")}</button>
+        <button type="button" className={`rounded-lg px-3 py-2.5 text-xs font-extrabold transition ${method === "phone" ? "bg-white text-[#0f766e] shadow-sm" : "text-[#81908f]"}`} onClick={() => { setMethod("phone"); setIdentifier(""); setError(""); }}><Phone className="mr-1.5 inline size-4" />{trStatic("Phone")}</button>
+      </div>
+      <form className="mt-4 grid gap-2.5 text-left" onSubmit={submitCredentials}>
+        {mode === "register" && <input required className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("Your name")} value={name} onChange={(event) => setName(event.target.value)} />}
+        <input required type={method === "email" ? "email" : "tel"} className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={method === "email" ? trStatic("Email address") : trStatic("Phone number with country code")} value={identifier} onChange={(event) => setIdentifier(event.target.value)} />
+        <input required minLength={8} type="password" className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("Password (8+ characters)")} value={password} onChange={(event) => setPassword(event.target.value)} />
+        {error && <p className="text-xs font-semibold text-[#b14b45]">{error}</p>}
+        <button disabled={busy} className="btn-primary w-full disabled:opacity-60" type="submit">{busy ? trStatic("Please wait...") : mode === "login" ? trStatic("Sign in") : trStatic("Create account")} {method === "email" ? <Mail className="size-4" /> : <Phone className="size-4" />}</button>
+      </form>
+      <button className="mt-4 text-xs font-bold text-[#0f766e]" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>{mode === "login" ? trStatic("Create a new account") : trStatic("Already have an account? Sign in")}</button>
+      <p className="mt-4 text-[11px] leading-5 text-[#9aa5a5]">{trStatic("Your name, login identifier, and study data are saved securely in the database.")}</p>
+    </div>
+  </div>;
 }
 export default function App() {
   const { user, loading, logout } = useAuth();
