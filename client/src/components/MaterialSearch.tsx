@@ -19,6 +19,7 @@ export function MaterialSearch({
       retry: false,
     }
   );
+  const utils = trpc.useUtils();
   const save = trpc.workspace.saveItem.useMutation();
 
   const submit = () => setSubmittedQuery(query.trim());
@@ -40,6 +41,7 @@ export function MaterialSearch({
         .join(" · "),
     });
     setSaved(current => [...current, resultKey]);
+    await utils.workspace.savedItems.invalidate();
   };
 
   return (
@@ -120,7 +122,9 @@ export function MaterialSearch({
                   <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-[#7f9090]">
                     <span className="source-pill">{result.section}</span>
                     {result.page && (
-                      <span className="source-pill">{trStatic("Page")} {result.page}</span>
+                      <span className="source-pill">
+                        {trStatic("Page")} {result.page}
+                      </span>
                     )}
                     {result.timestamp && (
                       <span className="source-pill">{result.timestamp}</span>
@@ -129,7 +133,10 @@ export function MaterialSearch({
                 </div>
                 <button
                   className="btn-quiet shrink-0"
-                  disabled={saved.includes(`${result.materialId}-${result.section}`) || save.isPending}
+                  disabled={
+                    saved.includes(`${result.materialId}-${result.section}`) ||
+                    save.isPending
+                  }
                   onClick={() => void saveResult(result)}
                 >
                   <BookmarkPlus className="size-4" />

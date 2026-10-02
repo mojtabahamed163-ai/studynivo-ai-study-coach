@@ -6,9 +6,11 @@ import { trStatic } from "@/i18n";
 export function PersistedPracticeTest({
   subjectId,
   onExit,
+  kind = "practice",
 }: {
   subjectId: string;
   onExit: () => void;
+  kind?: "practice" | "mock";
 }) {
   const id = Number(subjectId);
   const [attemptId, setAttemptId] = useState<number>();
@@ -49,7 +51,9 @@ export function PersistedPracticeTest({
     return (
       <div className="mx-auto max-w-3xl">
         <div className="card p-7">
-          <div className="eyebrow">{trStatic("Practice test")}</div>
+          <div className="eyebrow">
+            {trStatic(kind === "mock" ? "Full mock exam" : "Practice test")}
+          </div>
           <h1 className="page-title">
             {trStatic("Test what you can recall.")}
           </h1>
@@ -61,9 +65,7 @@ export function PersistedPracticeTest({
           <button
             className="btn-primary mt-7"
             disabled={create.isPending}
-            onClick={() =>
-              void create.mutateAsync({ subjectId: id, kind: "practice" })
-            }
+            onClick={() => void create.mutateAsync({ subjectId: id, kind })}
           >
             {create.isPending ? (
               <LoaderCircle className="size-4 animate-spin" />
@@ -125,7 +127,11 @@ export function PersistedPracticeTest({
       </button>
       <div className="card p-7">
         <div className="flex items-center justify-between">
-          <div className="eyebrow">{trStatic("Saved practice test")}</div>
+          <div className="eyebrow">
+            {trStatic(
+              kind === "mock" ? "Saved mock exam" : "Saved practice test"
+            )}
+          </div>
           <span className="topic-chip">
             {index + 1} / {questions.length}
           </span>
