@@ -169,7 +169,7 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 - أُنشئ دليل طالب مختصر بالعربية، ثم دليل موحد بكل اللغات في `docs/STUDENT_GUIDE_ALL_LANGUAGES.md`.
 - استُبدلت رسمة بطاقة الإيقاع داخل لوحة التحكم بمشهد دراسة واضح في `client/src/components/ProfileIllustration.tsx`.
 - استُبدلت أيقونة التعريف الصغيرة للتطبيق قبل فتحه بأيقونة تعليمية جديدة: كتاب مفتوح وشرارة تركيز، بلا شخص أو رموز دينية أو تداول.
-- الأيقونة الرسمية الدائمة مستخدمة في `app.config.ts`، ومضافة كـfavicon وApple touch icon في `client/index.html`.
+- الأيقونة الرسمية الدائمة مستخدمة في `app.config.ts`، ومضافة كـfavicon وApple touch icon في `client/index.html`، مع نسخة محلية احتياطية في `client/public/studynivo-app-icon.png`.
 - تم نشر الإصدار الأخير رسميًا: `83b5ae39b99f4c4fb00cd42ba775ea9cdbe4deaf`.
 
 ### نقل المشروع إلى حساب Manus آخر
@@ -200,3 +200,4 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 | `fa51de2` | دليل الطالب بكل اللغات |
 | `0bd4dba` | استبدال رسم لوحة التحكم بمشهد دراسة |
 | `83b5ae3` | تعيين أيقونة StudyNivo التعليمية الرسمية ونشرها |
+| `bc4df6e` | حفظ نسخة الأيقونة داخل المستودع لتسهيل النقل |
