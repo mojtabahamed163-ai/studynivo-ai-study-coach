@@ -92,10 +92,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .hero-panel { position: relative; padding: 16px; border: 1px solid #e3ebe6; border-radius: 26px; background: #fff; box-shadow: 0 24px 70px rgba(30,62,57,.11); transform: rotate(1.2deg); }
 .hero-panel::before { content: ""; position: absolute; inset: 14px; border: 1px solid #eff4f1; border-radius: 18px; pointer-events: none; }
 .hero-window { position: relative; padding: 22px; border-radius: 18px; background: #f7faf7; }
-.profile-illustration { position: relative; overflow: hidden; min-height: 190px; display: grid; place-items: center; border-radius: 18px; background: linear-gradient(145deg, #f4fbf8 0%, #e7f4ef 100%); }
+.profile-illustration { position: relative; overflow: hidden; min-height: 190px; display: grid; place-items: end center; border-radius: 18px; background: linear-gradient(145deg, #f4fbf8 0%, #e7f4ef 100%); }
 .profile-illustration::after { content: ""; position: absolute; inset: auto 12% 14px; height: 16px; border-radius: 50%; background: rgba(91, 145, 132, .12); filter: blur(7px); }
-.profile-illustration img { position: relative; z-index: 1; display: block; width: 100%; height: 190px; object-fit: cover; transition: transform 280ms ease; }
-.profile-illustration:hover img { transform: translateY(-4px) scale(1.015); }
+.profile-illustration svg { position: relative; z-index: 1; display: block; width: min(100%, 420px); height: auto; transition: transform 280ms ease; }
+.profile-illustration:hover svg { transform: translateY(-4px) scale(1.015); }
 .landing-section { width: min(1160px, 100%); margin: 0 auto; padding: 0 24px 86px; }
 .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .feature-card { padding: 22px; min-height: 190px; }
@@ -137,7 +137,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .hero-copy { font-size: 15px; }
   .feature-grid { grid-template-columns: 1fr; }
   .profile-illustration { min-height: 155px; border-radius: 16px; }
-  .profile-illustration img { height: 155px; }
   .landing-nav .nav-links { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
