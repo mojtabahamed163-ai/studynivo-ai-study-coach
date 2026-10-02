@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
+import { registerCustomAuthRoutes } from "./customAuth";
 import { publicPlatformScript } from "./publicConfig";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -18,7 +18,7 @@ async function startServer() {
   app.get("/api/platform/config.js", (_req, res) => {
     res.set("Cache-Control", "no-store").type("application/javascript").send(publicPlatformScript());
   });
-  registerOAuthRoutes(app);
+  registerCustomAuthRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
