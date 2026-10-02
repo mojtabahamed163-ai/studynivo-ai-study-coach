@@ -1,0 +1,14 @@
+import { Check, RotateCcw, X } from "lucide-react";
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { trStatic } from "@/i18n";
+
+export function ReviewQueue() {
+  const utils = trpc.useUtils();
+  const queue = trpc.workspace.reviewQueue.useQuery(undefined, { retry: false });
+  const review = trpc.workspace.reviewFlashcard.useMutation({ onSuccess: () => { void utils.workspace.reviewQueue.invalidate(); } });
+  const [revealed, setRevealed] = useState(false);
+  const card = queue.data?.[0];
+  const act = (correct: boolean, confidence: "low" | "medium" | "high") => { if (!card) return; setRevealed(false); void review.mutateAsync({ cardId: card.id, correct, confidence }); };
+  return <><div><div className="eyebrow">{trStatic("Spaced review")}</div><h1 className="page-title">{trStatic("Review me.")}</h1><p className="page-subtitle">{trStatic("Return to the things that were hard, uncertain, or worth saving — before they fade.")}</p></div><div className="mt-8 grid gap-5 lg:grid-cols-[1fr_.7fr]"><div className="card p-6"><div className="flex items-center justify-between"><div><div className="kicker">{trStatic("Priority queue")}</div><h2 className="mt-2 text-xl font-extrabold">{queue.data?.length ?? 0} {trStatic("reviews waiting")}</h2></div><RotateCcw className="size-5 text-[#0f766e]" /></div>{card ? <><div className="mt-6 flashcard" onClick={() => setRevealed(value => !value)}><div className="kicker">{revealed ? trStatic("Answer") : trStatic("Prompt")}</div><div className="mt-4 text-2xl font-extrabold">{revealed ? card.back : card.front}</div><div className="mt-5 text-xs font-bold text-[#0f766e]">{card.sourceRef || trStatic("Grounded in your subject material")}</div></div><div className="mt-5 flex flex-wrap gap-2"><button className="btn-light" disabled={!revealed || review.isPending} onClick={() => act(false, "low")}><X className="size-4 text-[#b9792e]" />{trStatic("Need review")}</button><button className="btn-light" disabled={!revealed || review.isPending} onClick={() => act(true, "medium")}><RotateCcw className="size-4 text-[#0f766e]" />{trStatic("Good")}</button><button className="btn-primary" disabled={!revealed || review.isPending} onClick={() => act(true, "high")}><Check className="size-4" />{trStatic("Easy")}</button></div></> : <div className="mt-6 rounded-2xl bg-[#f1f8f5] p-5 text-sm leading-6 text-[#53736b]">{trStatic("Your review queue is clear. Open a subject and build grounded flashcards from its topics to keep this queue active.")}</div>}</div><div className="card p-6"><div className="kicker">{trStatic("Why this queue?")}</div><h2 className="mt-2 text-xl font-extrabold">{trStatic("Confidence is part of mastery.")}</h2><p className="mt-3 text-sm leading-6 text-[#7b8a8c]">{trStatic("A correct answer with low confidence still returns here. A repeated mistake rises in priority until it becomes reliable recall.")}</p></div></div></>;
+}
