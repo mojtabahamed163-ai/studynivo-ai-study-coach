@@ -11,6 +11,14 @@
     <meta name="theme-color" content="#0f766e" />
     <link rel="icon" type="image/png" href="/studynivo-app-icon.png" />
     <link rel="apple-touch-icon" href="/studynivo-app-icon.png" />
+    <script>
+      try {
+        if (localStorage.getItem("studynivo-theme") === "dark") {
+          document.documentElement.classList.add("dark");
+          document.documentElement.style.colorScheme = "dark";
+        }
+      } catch {}
+    </script>
     <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

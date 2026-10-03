@@ -10,7 +10,7 @@
 
 المستودع **Private**. يجب دعوة حساب GitHub المستخدم في Manus كـcollaborator، أو ربط GitHub Integration في ذلك الحساب بنفس حساب GitHub الذي يملك المستودع. لا ترسل مفاتيح API أو كلمات المرور داخل الدردشة.
 
-يجب استخدام الفرع `main`، وآخر commit حالي موثق في هذه اللحظة هو `4e26b20`، ويتضمن المصادقة بالبريد/الهاتف، إصلاحات قاعدة البيانات، وفحوصات التدقيق. لا تنشئ مشروعًا جديدًا من قالب فارغ ولا تنسخ الملفات يدويًا فوق مشروع آخر؛ اربط المستودع نفسه حتى تبقى migrations والتاريخ والوثائق متزامنة. اقرأ أيضًا `docs/HANDOFF_FOR_NEW_MANUS_ACCOUNT.md` للحصول على سجل التسليم العملي الكامل.
+يجب استخدام الفرع `main` ومراجعته عند آخر `HEAD` في GitHub؛ آخر مراجعة إصلاحات بدأت من `375c65a` وشملت الأمان والاختبارات والتقرير والمظهر وStudy Manager. لا تعتمد أرقام commits أقدم موجودة في سجلات تاريخية. لا تنشئ مشروعًا جديدًا من قالب فارغ ولا تنسخ الملفات يدويًا فوق مشروع آخر؛ اربط المستودع نفسه حتى تبقى migrations والتاريخ والوثائق متزامنة. اقرأ أيضًا `docs/HANDOFF_FOR_NEW_MANUS_ACCOUNT.md` للحصول على سجل التسليم العملي الكامل.
 
 ## 2. استيراد المستودع في Manus
 
@@ -32,7 +32,7 @@
 |---|---|---|
 | قاعدة البيانات | `DATABASE_URL` | يوفرها Manus Database؛ لا تضع DSN في GitHub. |
 | مصادقة جلسات StudyNivo | `STUDYNIVO_SESSION_SECRET` | يجب ضبطه في Secrets بقيمة عشوائية لا تقل عن 32 حرفًا؛ لا تضعه في GitHub. |
-| Manus OAuth | `MANUS_OAUTH_API_URL` | المسار الحالي هو Manus OAuth. |
+| مزودات OAuth | غير مفعّلة حاليًا | تسجيل الدخول الفعلي بالبريد أو الهاتف؛ لا تضبط OAuth غير المستخدم. |
 | Storage + AI + Speech | `MANUS_API_URL`, `MANUS_API_KEY` | يجب أن تكون من Service API/Storage المدارة، ولا تُنسخ إلى المحادثة. |
 | معرف المشروع | `MANUS_PROJECT_ID` | يحقنه Webdev عند ربط المشروع. |
 | مالك اختياري | `OWNER_OPEN_ID` | اختياري للـadmin role؛ لا حاجة له للتشغيل الأساسي. |
@@ -50,7 +50,7 @@ pnpm check
 pnpm db:migrate
 ```
 
-استخدم `pnpm db:migrate` لتطبيق migrations الموجودة. استخدم `pnpm db:push` فقط عند تعديل `drizzle/schema.ts` وبعد مراجعة migration الناتجة. لا تحذف `drizzle/0000_*` حتى `drizzle/0004_*` ولا تعيد ترتيب ملفات migration.
+استخدم `pnpm db:migrate` لتطبيق migrations الموجودة بعد ربط قاعدة اختبار/قاعدة المشروع وأخذ نسخة احتياطية مناسبة. تشمل السلسلة حاليًا `0000` حتى `0009`، مع migration إضافة لإصدار الجلسة وتوسيع نص المادة؛ لم تُطبّق هذه السلسلة من بيئة الفحص لأن `DATABASE_URL` غير متاح فيها. استخدم `pnpm db:push` فقط بعد مراجعة migration الناتجة. لا تحذف أو تعِد ترتيب أي ملف migration.
 
 بعد نجاح قاعدة البيانات:
 
@@ -75,12 +75,12 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 النتيجة المتوقعة:
 
 - TypeScript بلا أخطاء.
-- الاختبارات الحالية تمر، ومنها اختبارات المصادقة، Speech contract، material analysis، Study Manager وi18n.
+- الاختبارات الحالية تمر؛ تضم 13 ملف اختبار و41 اختبارًا، ومنها CSRF والجلسات ومحدد محاولات الدخول والتحقق من المواد والمصادر وحماية إجابات/درجات Full Mock وترجمة تدفق الاختبارات وStudy Manager وi18n.
 - `pnpm build` ينجح. تحذير Vite الخاص بـ`/api/platform/config.js` وتحذير bundle الأكبر من 500 kB معروفان وغير مانعين حاليًا.
 - health يعيد `{"status":"ok"}`.
 - routes يعيد JSON لا HTML fallback.
 
-بعد ذلك اختبر يدويًا في Preview: تسجيل الدخول، إنشاء Subject، رفع TXT/PDF/DOCX/صورة/صوت، انتظار processing، الضغط على Analyze topics، تغيير العربية، تجربة RTL، وفتح بطاقة الرسمة التعليمية في Dashboard.
+بعد ذلك اختبر يدويًا في Preview: تسجيل الدخول، إنشاء Subject، رفع TXT/PDF/DOCX/صورة/صوت، انتظار processing، الضغط على Analyze topics، تشغيل Practice وFull Mock المولّد من المصدر، الإجابة ثم إعادة تحميل التقرير، تجربة العربية/RTL والمظهرين، واستئناف جلسة محفوظة. هذه مسارات لا يمكن إثبات تكاملها مع قاعدة حقيقية في بيئة لا تحتوي `DATABASE_URL`.
 
 ## 6. قواعد مهمة عند مواصلة التطوير
 
@@ -95,7 +95,7 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 
 ## 7. مسار العمل المقترح بعد التشغيل
 
-المرحلة التالية الموصى بها هي اختبار end-to-end بعد تسجيل الدخول ورفع ملفات حقيقية، ثم تحسين retrieval الدلالي وFull Mock Exam وربط أخطاء الاختبارات بـStudy Manager. Material Search وFlashcards وReview Me وQuiz Attempts أُنجزت بالفعل. التفاصيل والقيود موجودة في قسم الاقتراحات داخل `docs/PROJECT_HANDOFF.md`.
+المرحلة التالية الموصى بها هي اختبار end-to-end بعد تهيئة Server/Database/Storage/AI في بيئة Manus؛ ركّز على upload → indexing → Analyze topics → Full Mock/Practice → إعادة تحميل التقرير → Review Me والجلسات. أضيف CI إلى GitHub لتشغيل `check/test/build` على `main` وطلبات الدمج. التحسينات الدلالية الأوسع ما تزال لاحقة، وليست بديلًا عن اختبار التكامل الفعلي.
 
 ## 8. تعافي الأخطاء
 

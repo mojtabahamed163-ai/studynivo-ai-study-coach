@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "e07d4e31-4246-4e8f-ac90-df7bf95716fd",
-  "prevId": "71c53027-918a-40b3-8d44-2d76cef96bd0",
+  "id": "f6fdbda7-a2c8-45e6-a65e-b00a7aa7fbf9",
+  "prevId": "fabfe767-5659-4007-863a-92a733850c41",
   "tables": {
     "flashcards": {
       "name": "flashcards",
@@ -358,7 +358,7 @@
         },
         "textContent": {
           "name": "textContent",
-          "type": "text",
+          "type": "mediumtext",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -492,6 +492,15 @@
             "attemptId"
           ],
           "isUnique": false
+        },
+        "quiz_answers_question_unique": {
+          "name": "quiz_answers_question_unique",
+          "columns": [
+            "userId",
+            "attemptId",
+            "questionIndex"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {},
@@ -1106,12 +1115,27 @@
           "notNull": false,
           "autoincrement": false
         },
+        "phoneNumber": {
+          "name": "phoneNumber",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "passwordHash": {
           "name": "passwordHash",
           "type": "varchar(180)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "sessionVersion": {
+          "name": "sessionVersion",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "loginMethod": {
           "name": "loginMethod",
@@ -1154,7 +1178,22 @@
           "default": "(now())"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        },
+        "users_phone_unique": {
+          "name": "users_phone_unique",
+          "columns": [
+            "phoneNumber"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "users_id": {

@@ -1,10 +1,16 @@
 import { COOKIE_NAME } from "@shared/const";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { invalidateUserSessions } from "./_core/customAuth";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { chatCompletion, groundedSystemPrompt } from "./ai/client";
+import {
+  chatCompletion,
+  groundedAnswerJsonSchema,
+  groundedSystemPrompt,
+} from "./ai/client";
 import { chunkText, selectRelevantChunks } from "./ai/materialProcessor";
+import { parseGroundedAnswer } from "./ai/grounding";
 import {
   addSavedItem,
   addTextMaterial,
@@ -24,7 +30,11 @@ import {
   reviewFlashcard,
   createQuizAttempt,
   answerQuizQuestion,
+  getQuizAttemptProgress,
   listDueFlashcardsForUser,
+  getActiveStudySession,
+  listMistakeReviewsForUser,
+  getStudyRecommendationForUser,
 } from "./db";
 import { extractTopicInsights } from "./ai/materialAnalysis";
 import { enqueueMaterialProcessing } from "./materialPipeline";
@@ -45,7 +55,8 @@ export const appRouter = router({
         role: user.role,
       };
     }),
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user) await invalidateUserSessions(ctx.user.id);
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
@@ -187,6 +198,18 @@ export const appRouter = router({
     reviewQueue: protectedProcedure.query(({ ctx }) =>
       listDueFlashcardsForUser(ctx.user.id)
     ),
+    mistakeReviewQueue: protectedProcedure.query(({ ctx }) =>
+      listMistakeReviewsForUser(ctx.user.id)
+    ),
+    studyRecommendation: protectedProcedure
+      .input(
+        z.object({
+          availableMinutes: z.number().int().min(1).max(180).default(30),
+        })
+      )
+      .query(({ ctx, input }) =>
+        getStudyRecommendationForUser(ctx.user.id, input.availableMinutes)
+      ),
     flashcards: protectedProcedure
       .input(
         z.object({
@@ -211,21 +234,45 @@ export const appRouter = router({
         z.object({
           subjectId: z.number().int().positive(),
           kind: z.enum(["practice", "mock"]),
+          locale: z
+            .enum([
+              "en", "ar", "es", "pt", "fr", "de", "it", "tr", "ja", "ko", "zh", "hi", "ru", "id",
+            ])
+            .default("en"),
         })
       )
       .mutation(({ ctx, input }) =>
-        createQuizAttempt(ctx.user.id, input.subjectId, input.kind)
+        createQuizAttempt(ctx.user.id, input.subjectId, input.kind, input.locale)
       ),
     answerQuiz: protectedProcedure
       .input(
         z.object({
           attemptId: z.number().int().positive(),
           questionIndex: z.number().int().min(0),
-          answer: z.string(),
+          answer: z.string().min(1).max(1000),
           confidence: z.enum(["low", "medium", "high"]),
         })
       )
       .mutation(({ ctx, input }) => answerQuizQuestion(ctx.user.id, input)),
+    quizAttemptProgress: protectedProcedure
+      .input(
+        z.object({
+          attemptId: z.number().int().positive(),
+          subjectId: z.number().int().positive(),
+          kind: z.enum(["practice", "mock"]),
+        })
+      )
+      .query(({ ctx, input }) =>
+        getQuizAttemptProgress(
+          ctx.user.id,
+          input.attemptId,
+          input.subjectId,
+          input.kind
+        )
+      ),
+    activeSession: protectedProcedure.query(({ ctx }) =>
+      getActiveStudySession(ctx.user.id)
+    ),
     startSession: protectedProcedure
       .input(
         z.object({
@@ -239,7 +286,7 @@ export const appRouter = router({
       .input(
         z.object({
           sessionId: z.number().int().positive(),
-          elapsedSeconds: z.number().int().min(0),
+          elapsedSeconds: z.number().int().min(0).max(10_800),
           status: z.enum(["active", "paused", "completed"]),
         })
       )
@@ -319,16 +366,12 @@ export const appRouter = router({
             ),
           },
           { role: "user", content: input.question },
-        ]);
-        return {
+        ], { jsonSchema: groundedAnswerJsonSchema, timeoutMs: 60_000 });
+        return parseGroundedAnswer(
           answer,
-          sourceRefs: chunks.map(chunk => ({
-            label: input.sourceRef || chunk.sourceRef,
-          })),
-          confidence: "medium" as const,
-          insufficientContext: false,
-          conflicts: [],
-        };
+          chunks.map(chunk => input.sourceRef || chunk.sourceRef),
+          "Could not verify an answer from the selected sources. Add more context or rephrase the question."
+        );
       }),
     askMaterial: protectedProcedure
       .input(
@@ -359,7 +402,7 @@ export const appRouter = router({
         const subject = await getSubject(ctx.user.id, input.subjectId);
         if (!subject) throw new Error("Subject not found");
         const chunks = subject.materials.flatMap(material => {
-          if (!material.textContent) return [];
+          if (!material.textContent || material.status !== "indexed") return [];
           const transcript = Array.isArray(material.transcriptSegments)
             ? (
                 material.transcriptSegments as Array<{
@@ -398,14 +441,12 @@ export const appRouter = router({
             content: groundedSystemPrompt(subject.name, context, input.locale),
           },
           { role: "user", content: input.question },
-        ]);
-        return {
+        ], { jsonSchema: groundedAnswerJsonSchema, timeoutMs: 60_000 });
+        return parseGroundedAnswer(
           answer,
-          sourceRefs: relevant.map(chunk => ({ label: chunk.sourceRef })),
-          confidence: "medium" as const,
-          insufficientContext: false,
-          conflicts: [],
-        };
+          relevant.map(chunk => chunk.sourceRef),
+          "Could not verify an answer from the selected sources. Add clearer material or rephrase the question."
+        );
       }),
   }),
 });

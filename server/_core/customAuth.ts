@@ -2,12 +2,18 @@ import crypto from "node:crypto";
 import { promisify } from "node:util";
 import type { Express, Request, Response } from "express";
 import { SignJWT, jwtVerify } from "jose";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { parse as parseCookies } from "cookie";
 import { users } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { getSessionCookieOptions } from "./cookies";
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, SESSION_MAX_AGE_MS } from "@shared/const";
+import {
+  clearAuthFailures,
+  isAuthRateLimited,
+  recordAuthFailure,
+} from "./authRateLimit";
+import { isCurrentSessionVersion } from "./sessionVersion";
 
 const scrypt = promisify(crypto.scrypt);
 type LoginMethod = "email" | "phone";
@@ -49,11 +55,11 @@ async function verifyPassword(password: string, stored: string) {
   );
 }
 
-async function sessionToken(userId: number) {
-  return new SignJWT({ userId })
+async function sessionToken(userId: number, sessionVersion: number) {
+  return new SignJWT({ userId, sessionVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("1y")
+    .setExpirationTime("30d")
     .sign(sessionSecret());
 }
 
@@ -75,17 +81,32 @@ async function userFromRequest(req: Request) {
       .from(users)
       .where(eq(users.id, payload.userId))
       .limit(1);
-    return rows[0] ?? null;
+    const user = rows[0];
+    if (
+      !user ||
+      !isCurrentSessionVersion(payload.sessionVersion, user.sessionVersion)
+    )
+      return null;
+    return user;
   } catch {
     return null;
   }
 }
 
 async function signIn(res: Response, user: typeof users.$inferSelect) {
-  res.cookie(COOKIE_NAME, await sessionToken(user.id), {
+  res.cookie(COOKIE_NAME, await sessionToken(user.id, user.sessionVersion), {
     ...getSessionCookieOptions({} as Request),
-    maxAge: ONE_YEAR_MS,
+    maxAge: SESSION_MAX_AGE_MS,
   });
+}
+
+export async function invalidateUserSessions(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db
+    .update(users)
+    .set({ sessionVersion: sql`${users.sessionVersion} + 1` })
+    .where(eq(users.id, userId));
 }
 
 async function findUser(
@@ -124,13 +145,21 @@ export async function registerCustomAuthRoutes(app: Express) {
       };
       if (method !== "email" && method !== "phone")
         return res.status(400).json({ error: "Choose email or phone" });
-      if (!identifier || !password || password.length < 8)
+      if (
+        typeof identifier !== "string" ||
+        typeof password !== "string" ||
+        identifier.length > 320 ||
+        password.length < 8 ||
+        password.length > 128
+      )
         return res
           .status(400)
           .json({
             error:
-              "Enter your identifier and a password of at least 8 characters",
+              "Enter your identifier and a password between 8 and 128 characters",
           });
+      if (mode !== "login" && mode !== "register")
+        return res.status(400).json({ error: "Invalid authentication mode" });
       const normalized =
         method === "email"
           ? normalizeEmail(identifier)
@@ -141,37 +170,55 @@ export async function registerCustomAuthRoutes(app: Express) {
         return res
           .status(400)
           .json({ error: "Enter a valid phone number with country code" });
+      const ip = req.ip || req.socket.remoteAddress || "unknown";
+      if (isAuthRateLimited(ip, method, normalized))
+        return res
+          .status(429)
+          .json({ error: "Too many attempts. Try again in 15 minutes." });
       const db = await getDb();
       if (!db)
         return res.status(503).json({ error: "Database is not available" });
       let user = await findUser(db, method, normalized);
       if (mode === "register") {
-        if (!name?.trim())
+        if (typeof name !== "string" || !name.trim() || name.trim().length > 120)
           return res.status(400).json({ error: "Enter your name" });
-        if (user)
-          return res
-            .status(409)
-            .json({
-              error: "An account with this email or phone already exists",
+        if (user) {
+          recordAuthFailure(ip, method, normalized);
+          return res.json({ success: true, requiresSignIn: true });
+        }
+        {
+          try {
+            await db.insert(users).values({
+              openId: `${method}:${crypto.randomUUID()}`,
+              name: name.trim(),
+              email: method === "email" ? normalized : null,
+              phoneNumber: method === "phone" ? normalized : null,
+              loginMethod: method,
+              passwordHash: await hashPassword(password),
+              lastSignedIn: new Date(),
             });
-        await db.insert(users).values({
-          openId: `${method}:${crypto.randomUUID()}`,
-          name: name.trim(),
-          email: method === "email" ? normalized : null,
-          phoneNumber: method === "phone" ? normalized : null,
-          loginMethod: method,
-          passwordHash: await hashPassword(password),
-          lastSignedIn: new Date(),
-        });
-        user = await findUser(db, method, normalized);
+          } catch (error) {
+            const code = (error as { code?: string })?.code;
+            if (code !== "ER_DUP_ENTRY") throw error;
+            recordAuthFailure(ip, method, normalized);
+            return res.json({ success: true, requiresSignIn: true });
+          }
+          clearAuthFailures(ip, method, normalized);
+        }
+        // Return the same response for a new and an existing identifier, so
+        // registration cannot be used as an account-enumeration endpoint.
+        return res.json({ success: true, requiresSignIn: true });
       } else {
         if (
           !user?.passwordHash ||
           !(await verifyPassword(password, user.passwordHash))
-        )
+        ) {
+          recordAuthFailure(ip, method, normalized);
           return res
             .status(401)
             .json({ error: "Invalid email/phone or password" });
+        }
+        clearAuthFailures(ip, method, normalized);
         await db
           .update(users)
           .set({ lastSignedIn: new Date() })
@@ -195,9 +242,15 @@ export async function registerCustomAuthRoutes(app: Express) {
     }
   });
 
-  app.post("/api/auth/logout", (req, res) => {
-    res.clearCookie(COOKIE_NAME, getSessionCookieOptions(req));
-    res.json({ success: true });
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      const user = await userFromRequest(req);
+      if (user) await invalidateUserSessions(user.id);
+      res.clearCookie(COOKIE_NAME, getSessionCookieOptions(req));
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({ error: "Could not end the session" });
+    }
   });
 }
 

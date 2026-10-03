@@ -11,6 +11,7 @@
     { "path": "/saved", "title": "Saved Items" },
     { "path": "/settings", "title": "Settings" },
     { "path": "/session/:id", "title": "Study Session" },
-    { "path": "/practice/:id", "title": "Practice Test" }
+    { "path": "/practice/:id", "title": "Practice Test" },
+    { "path": "/mock/:id", "title": "Full Mock Exam" }
   ]
 }

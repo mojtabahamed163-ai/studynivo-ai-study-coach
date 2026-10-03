@@ -32,9 +32,13 @@ export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
+  options: { uniqueSuffix?: boolean } = {},
 ): Promise<{ key: string; url: string }> {
   const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = appendHashSuffix(normalizeKey(relKey));
+  const key =
+    options.uniqueSuffix === false
+      ? normalizeKey(relKey)
+      : appendHashSuffix(normalizeKey(relKey));
 
   // 1. Get presigned PUT URL from Forge
   const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
@@ -42,12 +46,11 @@ export async function storagePut(
 
   const presignResp = await fetch(presignUrl, {
     headers: { Authorization: `Bearer ${forgeKey}` },
+    signal: AbortSignal.timeout(30_000),
   });
 
-  if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
-  }
+  if (!presignResp.ok)
+    throw new Error(`Storage presign failed (${presignResp.status})`);
 
   const { url: s3Url } = (await presignResp.json()) as { url: string };
   if (!s3Url) throw new Error("Forge returned empty presign URL");
@@ -62,6 +65,7 @@ export async function storagePut(
     method: "PUT",
     headers: { "Content-Type": contentType },
     body: blob,
+    signal: AbortSignal.timeout(180_000),
   });
 
   if (!uploadResp.ok) {
@@ -85,12 +89,10 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
 
   const resp = await fetch(getUrl, {
     headers: { Authorization: `Bearer ${forgeKey}` },
+    signal: AbortSignal.timeout(30_000),
   });
 
-  if (!resp.ok) {
-    const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
-  }
+  if (!resp.ok) throw new Error(`Storage signed URL failed (${resp.status})`);
 
   const { url } = (await resp.json()) as { url: string };
   if (!url) throw new Error("Storage did not return a download URL");

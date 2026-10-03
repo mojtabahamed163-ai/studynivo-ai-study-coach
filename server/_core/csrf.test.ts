@@ -1,0 +1,55 @@
+import { describe, expect, it } from "vitest";
+import { isTrustedApiMutation } from "./csrf";
+
+const host = "studynivo.example";
+
+describe("same-origin API mutation guard", () => {
+  it("allows same-origin mutations over the request host", () => {
+    expect(
+      isTrustedApiMutation({
+        method: "POST",
+        headers: { host, origin: `https://${host}` },
+      })
+    ).toBe(true);
+  });
+
+  it("allows same-origin requests with an explicit port", () => {
+    expect(
+      isTrustedApiMutation({
+        method: "POST",
+        headers: { host: "localhost:3000", origin: "http://localhost:3000" },
+      })
+    ).toBe(true);
+  });
+
+  it("rejects a cross-site Origin even when Fetch Metadata is absent", () => {
+    expect(
+      isTrustedApiMutation({
+        method: "POST",
+        headers: { host, origin: "https://attacker.example" },
+      })
+    ).toBe(false);
+  });
+
+  it("rejects cross-site Fetch Metadata and missing source headers", () => {
+    expect(
+      isTrustedApiMutation({
+        method: "POST",
+        headers: {
+          host,
+          origin: `https://${host}`,
+          "sec-fetch-site": "cross-site",
+        },
+      })
+    ).toBe(false);
+    expect(isTrustedApiMutation({ method: "POST", headers: { host } })).toBe(
+      false
+    );
+  });
+
+  it("accepts safe reads without a browser Origin header", () => {
+    expect(isTrustedApiMutation({ method: "GET", headers: { host } })).toBe(
+      true
+    );
+  });
+});

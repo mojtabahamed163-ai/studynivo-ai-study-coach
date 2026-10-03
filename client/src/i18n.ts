@@ -42,6 +42,212 @@ const supplementalTranslations: Partial<Record<Locale, Record<string, string>>> 
   id: { "30 minutes": "30 menit", "6 days": "6 hari", "2 tasks": "2 tugas", min: "mnt", days: "hari", "min studied": "mnt belajar", "weak topics": "topik lemah", Understand: "Pahami", "Turn lectures, notes, images, and audio into topics, explanations, and source-linked summaries.": "Ubah kuliah, catatan, gambar, dan audio menjadi topik, penjelasan, dan ringkasan dengan sumber.", Practice: "Berlatih", "Get questions that fit the subject — from definitions to calculations and open-ended reasoning.": "Dapatkan pertanyaan sesuai pelajaran, dari definisi dan perhitungan hingga penalaran terbuka.", "Know what is next": "Tahu langkah berikutnya", "Study Manager weighs exams, weak areas, confidence, and time to choose the next useful session.": "Pengelola belajar mempertimbangkan ujian, kelemahan, keyakinan, dan waktu untuk memilih sesi berikutnya.", "Separate subject spaces": "Ruang terpisah tiap pelajaran", "Save what matters": "Simpan yang penting", "Sessions that resume": "Sesi yang dapat dilanjutkan", "Private by design": "Privasi sejak awal desain", Low: "Rendah", Medium: "Sedang", High: "Tinggi", Page: "Halaman", Score: "Nilai", "One focused question": "Satu pertanyaan fokus", "Strong topic": "Topik kuat", "Keep it warm": "Pertahankan kemampuan", "Next step": "Langkah berikutnya", "Review mistakes": "Tinjau kesalahan", Confidence: "Keyakinan", Easy: "Mudah", Good: "Bagus", "Need review": "Perlu ditinjau" },
 };
 
+const appearanceTranslations: Partial<Record<Locale, Record<string, string>>> = {
+  en: {
+    Appearance: "Appearance",
+    "Choose how StudyNivo looks.": "Choose how StudyNivo looks.",
+    "Light appearance": "Light appearance",
+    "Dark appearance": "Dark appearance",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.",
+  },
+  ar: {
+    Appearance: "المظهر",
+    "Choose how StudyNivo looks.": "اختر مظهر StudyNivo الذي تفضّله.",
+    "Light appearance": "المظهر الفاتح",
+    "Dark appearance": "المظهر الداكن",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "إذا كان لديك حساب بهذا المعرّف فسجّل الدخول؛ وإلا فحسابك جاهز. سجّل الدخول للمتابعة.",
+  },
+  es: {
+    Appearance: "Apariencia",
+    "Choose how StudyNivo looks.": "Elige cómo se ve StudyNivo.",
+    "Light appearance": "Apariencia clara",
+    "Dark appearance": "Apariencia oscura",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Si ya existe una cuenta con ese identificador, inicia sesión; si no, tu cuenta está lista. Inicia sesión para continuar.",
+  },
+  pt: {
+    Appearance: "Aparência",
+    "Choose how StudyNivo looks.": "Escolha a aparência do StudyNivo.",
+    "Light appearance": "Aparência clara",
+    "Dark appearance": "Aparência escura",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Se já existir uma conta com esse identificador, entre; caso contrário, sua conta está pronta. Entre para continuar.",
+  },
+  fr: {
+    Appearance: "Apparence",
+    "Choose how StudyNivo looks.": "Choisissez l’apparence de StudyNivo.",
+    "Light appearance": "Apparence claire",
+    "Dark appearance": "Apparence sombre",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Si un compte existe déjà avec cet identifiant, connectez-vous ; sinon, votre compte est prêt. Connectez-vous pour continuer.",
+  },
+  de: {
+    Appearance: "Darstellung",
+    "Choose how StudyNivo looks.": "Wähle das Erscheinungsbild von StudyNivo.",
+    "Light appearance": "Helles Design",
+    "Dark appearance": "Dunkles Design",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Falls bereits ein Konto mit dieser Kennung besteht, melde dich an; andernfalls ist dein Konto bereit. Melde dich an, um fortzufahren.",
+  },
+  it: {
+    Appearance: "Aspetto",
+    "Choose how StudyNivo looks.": "Scegli l’aspetto di StudyNivo.",
+    "Light appearance": "Aspetto chiaro",
+    "Dark appearance": "Aspetto scuro",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Se esiste già un account con questo identificativo, accedi; altrimenti il tuo account è pronto. Accedi per continuare.",
+  },
+  tr: {
+    Appearance: "Görünüm",
+    "Choose how StudyNivo looks.": "StudyNivo görünümünü seçin.",
+    "Light appearance": "Açık görünüm",
+    "Dark appearance": "Koyu görünüm",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Bu kimlikle bir hesap varsa giriş yapın; yoksa hesabınız hazır. Devam etmek için giriş yapın.",
+  },
+  ja: {
+    Appearance: "表示",
+    "Choose how StudyNivo looks.": "StudyNivo の表示方法を選択します。",
+    "Light appearance": "ライトテーマ",
+    "Dark appearance": "ダークテーマ",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "この識別子のアカウントがすでにある場合はログインしてください。新規アカウントの場合は準備ができています。続行するにはログインしてください。",
+  },
+  ko: {
+    Appearance: "화면 모양",
+    "Choose how StudyNivo looks.": "StudyNivo의 화면 모양을 선택하세요.",
+    "Light appearance": "밝은 화면",
+    "Dark appearance": "어두운 화면",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "해당 식별자의 계정이 이미 있으면 로그인하고, 그렇지 않으면 계정이 준비됩니다. 계속하려면 로그인하세요.",
+  },
+  zh: {
+    Appearance: "外观",
+    "Choose how StudyNivo looks.": "选择 StudyNivo 的显示外观。",
+    "Light appearance": "浅色外观",
+    "Dark appearance": "深色外观",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "如果该标识已有账户，请登录；否则账户已准备就绪。请登录以继续。",
+  },
+  hi: {
+    Appearance: "रूप-रंग",
+    "Choose how StudyNivo looks.": "StudyNivo का रूप चुनें।",
+    "Light appearance": "हल्का रूप",
+    "Dark appearance": "गहरा रूप",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "यदि इस पहचान से खाता पहले से है, तो साइन इन करें; अन्यथा आपका खाता तैयार है। जारी रखने के लिए साइन इन करें।",
+  },
+  ru: {
+    Appearance: "Оформление",
+    "Choose how StudyNivo looks.": "Выберите оформление StudyNivo.",
+    "Light appearance": "Светлое оформление",
+    "Dark appearance": "Тёмное оформление",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Если аккаунт с таким идентификатором уже есть, войдите; иначе аккаунт готов. Войдите, чтобы продолжить.",
+  },
+  id: {
+    Appearance: "Tampilan",
+    "Choose how StudyNivo looks.": "Pilih tampilan StudyNivo.",
+    "Light appearance": "Tampilan terang",
+    "Dark appearance": "Tampilan gelap",
+    "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
+      "Jika akun dengan identitas itu sudah ada, silakan masuk; jika belum, akun Anda siap. Masuk untuk melanjutkan.",
+  },
+};
+
+const reportTranslations: Partial<Record<Locale, Record<string, string>>> = {
+  ar: {
+    "A mock exam covers all indexed topics in this subject.": "يغطي الاختبار التجريبي جميع الموضوعات المفهرسة في هذه المادة.",
+    "Could not generate source-grounded questions. Check indexed material and try again when the AI service is available.": "تعذر إنشاء أسئلة موثقة من المصادر. تحقق من فهرسة المادة وحاول مجددًا عند توفر خدمة الذكاء الاصطناعي.",
+    "A mock exam creates one source-grounded question for every indexed topic, up to 50 topics.": "ينشئ الاختبار التجريبي سؤالًا موثقًا من المصدر لكل موضوع مفهرس، حتى 50 موضوعًا.",
+    "Restoring your saved test…": "جارٍ استعادة اختبارك المحفوظ…",
+    "Could not restore this test. Please return to the subject and start again.": "تعذرت استعادة هذا الاختبار. ارجع إلى المادة وابدأ مجددًا.",
+    "This test has no remaining questions.": "لا توجد أسئلة متبقية في هذا الاختبار.",
+    "Return to mistakes and low-confidence answers as well as cards due for review.": "راجع الأخطاء والإجابات منخفضة الثقة والبطاقات المستحقة للمراجعة.",
+    "Missed quiz answers": "إجابات الاختبارات التي تحتاج مراجعة",
+    "Practice again": "تدرّب مجددًا",
+    "reviews waiting": "مراجعات بانتظارك",
+    misses: "أخطاء",
+    "No answer": "لا توجد إجابة",
+    "Loading review queue…": "جارٍ تحميل قائمة المراجعة…",
+    "Could not load your review queue. Please retry.": "تعذر تحميل قائمة المراجعة. حاول مرة أخرى.",
+    "Your review queue is clear. Build grounded flashcards or finish a test with confidence to keep progress reliable.": "قائمة المراجعة فارغة. أنشئ بطاقات موثقة أو أجب بثقة في اختبار للحفاظ على تقدم موثوق.",
+    "Exam soon — prioritize this topic": "الامتحان قريب — أعطِ هذا الموضوع أولوية",
+    "Repeated mistakes need another recall pass": "الأخطاء المتكررة تحتاج إلى جولة استرجاع أخرى",
+    "A spaced review is due": "حان موعد المراجعة المتباعدة",
+    "Low confidence — check your recall": "الثقة منخفضة — اختبر استرجاعك للمعلومة",
+    "Return to this topic after a study break": "عُد إلى هذا الموضوع بعد انقطاع عن الدراسة",
+    "A weak topic needs another pass": "الموضوع الضعيف يحتاج إلى مراجعة أخرى",
+    "Keep the concept active with recall": "حافظ على نشاط المفهوم عبر الاسترجاع",
+    "Mock exam report": "تقرير الاختبار التجريبي",
+    "Answer review": "مراجعة الإجابات",
+    Correct: "إجابة صحيحة",
+    "Review needed": "تحتاج إلى مراجعة",
+    "Your answer": "إجابتك",
+    "Correct answer": "الإجابة الصحيحة",
+    Source: "المصدر",
+    "Could not save this answer. Please retry.": "تعذر حفظ الإجابة. حاول مرة أخرى.",
+    "Could not save this session. Please retry.": "تعذر حفظ الجلسة. حاول مرة أخرى.",
+    "Practice report": "تقرير التدريب",
+    "Your result is saved.": "تم حفظ نتيجتك.",
+  },
+};
+
+export const studyTestTranslationKeys = [
+  "Test what you can recall.",
+  "Your answers and confidence are saved to this subject’s learning history.",
+  "A mock exam creates one source-grounded question for every indexed topic, up to 50 topics.",
+  "Restoring your saved test…",
+  "Could not restore this test. Please return to the subject and start again.",
+  "This test has no remaining questions.",
+  "Start persisted test",
+  "Preparing questions…",
+  "Back to subject",
+  "Could not generate source-grounded questions. Check indexed material and try again when the AI service is available.",
+  "Saved mock exam",
+  "Saved practice test",
+  "Mock exam report",
+  "Practice report",
+  "Your result is saved.",
+  "Answer review",
+  "Correct",
+  "Review needed",
+  "Your answer",
+  "Correct answer",
+  "Source",
+  "Exit test",
+  "Finish test",
+  "Save answer",
+  "Could not save this answer. Please retry.",
+] as const;
+
+const studyTestRows: Partial<Record<Locale, readonly string[]>> = {
+  ar: ["اختبر ما تتذكره.", "تُحفظ إجاباتك ومستوى ثقتك في سجل التعلم لهذه المادة.", "ينشئ الاختبار التجريبي سؤالًا موثقًا من المصدر لكل موضوع مفهرس، حتى 50 موضوعًا.", "جارٍ استعادة اختبارك المحفوظ…", "تعذرت استعادة هذا الاختبار. ارجع إلى المادة وابدأ مجددًا.", "لا توجد أسئلة متبقية في هذا الاختبار.", "ابدأ الاختبار المحفوظ", "جارٍ إعداد الأسئلة…", "العودة إلى المادة", "تعذر إنشاء أسئلة موثقة من المصدر. تحقق من المادة المفهرسة وحاول عند توفر خدمة الذكاء الاصطناعي.", "اختبار تجريبي محفوظ", "تدريب محفوظ", "تقرير الاختبار التجريبي", "تقرير التدريب", "تم حفظ نتيجتك.", "مراجعة الإجابات", "صحيح", "تحتاج إلى مراجعة", "إجابتك", "الإجابة الصحيحة", "المصدر", "الخروج من الاختبار", "إنهاء الاختبار", "حفظ الإجابة", "تعذر حفظ الإجابة. حاول مرة أخرى."],
+  es: ["Pon a prueba lo que recuerdas.", "Tus respuestas y nivel de confianza se guardan en el historial de aprendizaje de esta asignatura.", "El examen simulado crea una pregunta basada en fuentes por cada tema indexado, hasta 50 temas.", "Restaurando tu prueba guardada…", "No se pudo restaurar esta prueba. Vuelve a la asignatura y empieza de nuevo.", "Esta prueba no tiene preguntas pendientes.", "Iniciar prueba guardada", "Preparando preguntas…", "Volver a la asignatura", "No se pudieron generar preguntas basadas en fuentes. Comprueba el material indexado e inténtalo cuando el servicio de IA esté disponible.", "Examen simulado guardado", "Práctica guardada", "Informe del examen simulado", "Informe de práctica", "Tu resultado se ha guardado.", "Revisión de respuestas", "Correcto", "Necesita repaso", "Tu respuesta", "Respuesta correcta", "Fuente", "Salir de la prueba", "Terminar prueba", "Guardar respuesta", "No se pudo guardar esta respuesta. Inténtalo de nuevo."],
+  pt: ["Teste o que você consegue lembrar.", "Suas respostas e confiança ficam salvas no histórico de aprendizagem desta matéria.", "O simulado cria uma pergunta baseada nas fontes para cada tópico indexado, até 50 tópicos.", "Restaurando seu teste salvo…", "Não foi possível restaurar este teste. Volte à matéria e comece novamente.", "Este teste não tem perguntas restantes.", "Iniciar teste salvo", "Preparando perguntas…", "Voltar à matéria", "Não foi possível gerar perguntas com base nas fontes. Verifique o material indexado e tente quando o serviço de IA estiver disponível.", "Simulado salvo", "Prática salva", "Relatório do simulado", "Relatório de prática", "Seu resultado foi salvo.", "Revisão das respostas", "Correta", "Precisa revisar", "Sua resposta", "Resposta correta", "Fonte", "Sair do teste", "Finalizar teste", "Salvar resposta", "Não foi possível salvar esta resposta. Tente novamente."],
+  fr: ["Testez ce dont vous vous souvenez.", "Vos réponses et votre niveau de confiance sont enregistrés dans l’historique d’apprentissage de cette matière.", "L’examen blanc crée une question sourcée pour chaque sujet indexé, jusqu’à 50 sujets.", "Restauration de votre test enregistré…", "Impossible de restaurer ce test. Revenez à la matière et recommencez.", "Il ne reste aucune question dans ce test.", "Commencer le test enregistré", "Préparation des questions…", "Retour à la matière", "Impossible de générer des questions sourcées. Vérifiez le contenu indexé et réessayez lorsque le service d’IA sera disponible.", "Examen blanc enregistré", "Exercice enregistré", "Rapport d’examen blanc", "Rapport d’exercice", "Votre résultat est enregistré.", "Correction des réponses", "Bonne réponse", "À revoir", "Votre réponse", "Bonne réponse", "Référence", "Quitter le test", "Terminer le test", "Enregistrer la réponse", "Impossible d’enregistrer cette réponse. Réessayez."],
+  de: ["Teste, woran du dich erinnerst.", "Deine Antworten und deine Sicherheit werden im Lernverlauf dieses Fachs gespeichert.", "Die Prüfungssimulation erstellt für jedes indexierte Thema eine quellenbasierte Frage, bis zu 50 Themen.", "Gespeicherten Test wiederherstellen…", "Dieser Test konnte nicht wiederhergestellt werden. Kehre zum Fach zurück und starte erneut.", "Dieser Test enthält keine offenen Fragen mehr.", "Gespeicherten Test starten", "Fragen werden vorbereitet…", "Zurück zum Fach", "Quellenbasierte Fragen konnten nicht erstellt werden. Prüfe das indexierte Material und versuche es erneut, sobald der KI-Dienst verfügbar ist.", "Gespeicherte Prüfungssimulation", "Gespeicherter Übungstest", "Bericht zur Prüfungssimulation", "Übungsbericht", "Dein Ergebnis wurde gespeichert.", "Antworten überprüfen", "Richtig", "Wiederholen", "Deine Antwort", "Richtige Antwort", "Quelle", "Test verlassen", "Test abschließen", "Antwort speichern", "Diese Antwort konnte nicht gespeichert werden. Bitte erneut versuchen."],
+  it: ["Verifica ciò che ricordi.", "Le risposte e il livello di sicurezza sono salvati nella cronologia di apprendimento di questa materia.", "L’esame simulato crea una domanda basata sulle fonti per ogni argomento indicizzato, fino a 50 argomenti.", "Ripristino del test salvato…", "Impossibile ripristinare il test. Torna alla materia e ricomincia.", "Non ci sono altre domande in questo test.", "Avvia il test salvato", "Preparazione delle domande…", "Torna alla materia", "Impossibile generare domande basate sulle fonti. Controlla il materiale indicizzato e riprova quando il servizio AI sarà disponibile.", "Esame simulato salvato", "Esercitazione salvata", "Report dell’esame simulato", "Report dell’esercitazione", "Il risultato è stato salvato.", "Revisione delle risposte", "Corretta", "Da ripassare", "La tua risposta", "Risposta corretta", "Fonte", "Esci dal test", "Termina il test", "Salva risposta", "Impossibile salvare la risposta. Riprova."],
+  tr: ["Neleri hatırladığını test et.", "Yanıtların ve güven düzeyin bu dersin öğrenme geçmişine kaydedilir.", "Deneme sınavı, dizine eklenen her konu için kaynaklı bir soru oluşturur; en fazla 50 konu.", "Kaydedilen test geri yükleniyor…", "Bu test geri yüklenemedi. Derse dönüp yeniden başlat.", "Bu testte yanıtlanacak soru kalmadı.", "Kaydedilen testi başlat", "Sorular hazırlanıyor…", "Derse dön", "Kaynaklı sorular oluşturulamadı. Dizine eklenen materyali kontrol et ve AI hizmeti kullanılabilir olduğunda tekrar dene.", "Kaydedilen deneme sınavı", "Kaydedilen alıştırma", "Deneme sınavı raporu", "Alıştırma raporu", "Sonucun kaydedildi.", "Yanıt incelemesi", "Doğru", "Tekrar gözden geçir", "Yanıtın", "Doğru yanıt", "Kaynak", "Testten çık", "Testi bitir", "Yanıtı kaydet", "Yanıt kaydedilemedi. Lütfen yeniden dene."],
+  ja: ["思い出せることを確認しましょう。", "回答と自信度は、この科目の学習履歴に保存されます。", "模擬試験では、インデックス済みの各トピックについて出典付きの問題を最大50問作成します。", "保存したテストを復元しています…", "テストを復元できませんでした。科目に戻って、もう一度開始してください。", "このテストに未回答の問題はありません。", "保存したテストを開始", "問題を準備しています…", "科目に戻る", "出典に基づく問題を作成できませんでした。インデックス済みの教材を確認し、AIサービスが利用可能になってから再試行してください。", "保存済み模擬試験", "保存済み練習テスト", "模擬試験レポート", "練習レポート", "結果を保存しました。", "解答の確認", "正解", "復習が必要", "あなたの回答", "正解", "出典", "テストを終了", "テストを完了", "回答を保存", "回答を保存できませんでした。もう一度お試しください。"],
+  ko: ["기억하는 내용을 확인해 보세요.", "답변과 자신감 수준이 이 과목의 학습 기록에 저장됩니다.", "모의시험은 색인된 각 주제에 대해 출처 기반 문제를 최대 50개 만듭니다.", "저장된 테스트를 복원하는 중…", "테스트를 복원하지 못했습니다. 과목으로 돌아가 다시 시작하세요.", "이 테스트에 남은 문제가 없습니다.", "저장된 테스트 시작", "문제를 준비하는 중…", "과목으로 돌아가기", "출처 기반 문제를 만들지 못했습니다. 색인된 자료를 확인하고 AI 서비스를 사용할 수 있을 때 다시 시도하세요.", "저장된 모의시험", "저장된 연습 테스트", "모의시험 보고서", "연습 보고서", "결과가 저장되었습니다.", "답변 검토", "정답", "복습 필요", "내 답변", "정답", "출처", "테스트 나가기", "테스트 완료", "답변 저장", "답변을 저장하지 못했습니다. 다시 시도하세요."],
+  zh: ["测测你能回忆起什么。", "你的答案和信心程度会保存到这门课程的学习记录中。", "模拟考试为每个已索引主题生成一道有来源依据的问题，最多50个主题。", "正在恢复已保存的测试…", "无法恢复此测试。请返回课程并重新开始。", "此测试没有剩余问题。", "开始已保存的测试", "正在准备问题…", "返回课程", "无法生成有来源依据的问题。请检查已索引的材料，并在 AI 服务可用时重试。", "已保存的模拟考试", "已保存的练习测试", "模拟考试报告", "练习报告", "结果已保存。", "答案回顾", "正确", "需要复习", "你的答案", "正确答案", "来源", "退出测试", "完成测试", "保存答案", "无法保存此答案，请重试。"],
+  hi: ["याद की गई बातों को परखें।", "आपके उत्तर और आत्मविश्वास इस विषय के सीखने के इतिहास में सहेजे जाते हैं।", "मॉक परीक्षा हर अनुक्रमित विषय के लिए स्रोत-आधारित प्रश्न बनाती है, अधिकतम 50 विषय।", "सहेजी गई परीक्षा बहाल हो रही है…", "यह परीक्षा बहाल नहीं हो सकी। विषय पर लौटें और फिर से शुरू करें।", "इस परीक्षा में कोई प्रश्न बाकी नहीं है।", "सहेजी गई परीक्षा शुरू करें", "प्रश्न तैयार हो रहे हैं…", "विषय पर लौटें", "स्रोत-आधारित प्रश्न नहीं बन सके। अनुक्रमित सामग्री जाँचें और AI सेवा उपलब्ध होने पर फिर प्रयास करें।", "सहेजी गई मॉक परीक्षा", "सहेजा गया अभ्यास परीक्षण", "मॉक परीक्षा रिपोर्ट", "अभ्यास रिपोर्ट", "आपका परिणाम सहेजा गया है।", "उत्तर समीक्षा", "सही", "पुनरावलोकन आवश्यक", "आपका उत्तर", "सही उत्तर", "स्रोत", "परीक्षा से बाहर जाएँ", "परीक्षा पूरी करें", "उत्तर सहेजें", "उत्तर सहेजा नहीं जा सका। फिर प्रयास करें।"],
+  ru: ["Проверьте, что вы помните.", "Ваши ответы и уверенность сохраняются в истории обучения по этому предмету.", "Пробный экзамен создаёт вопрос с источником для каждой индексированной темы, до 50 тем.", "Восстанавливаем сохранённый тест…", "Не удалось восстановить тест. Вернитесь к предмету и начните снова.", "В этом тесте не осталось вопросов.", "Начать сохранённый тест", "Подготовка вопросов…", "Вернуться к предмету", "Не удалось создать вопросы с источниками. Проверьте индексированные материалы и повторите попытку, когда ИИ-сервис будет доступен.", "Сохранённый пробный экзамен", "Сохранённая тренировка", "Отчёт о пробном экзамене", "Отчёт о тренировке", "Результат сохранён.", "Разбор ответов", "Верно", "Нужно повторить", "Ваш ответ", "Правильный ответ", "Источник", "Выйти из теста", "Завершить тест", "Сохранить ответ", "Не удалось сохранить ответ. Попробуйте ещё раз."],
+  id: ["Uji apa yang Anda ingat.", "Jawaban dan tingkat keyakinan Anda disimpan dalam riwayat belajar mata pelajaran ini.", "Ujian simulasi membuat satu soal bersumber untuk setiap topik terindeks, hingga 50 topik.", "Memulihkan tes tersimpan…", "Tes ini tidak dapat dipulihkan. Kembali ke mata pelajaran dan mulai lagi.", "Tidak ada soal tersisa dalam tes ini.", "Mulai tes tersimpan", "Menyiapkan soal…", "Kembali ke mata pelajaran", "Soal berbasis sumber tidak dapat dibuat. Periksa materi terindeks dan coba lagi saat layanan AI tersedia.", "Ujian simulasi tersimpan", "Latihan tersimpan", "Laporan ujian simulasi", "Laporan latihan", "Hasil Anda telah disimpan.", "Tinjauan jawaban", "Benar", "Perlu ditinjau", "Jawaban Anda", "Jawaban benar", "Sumber", "Keluar dari tes", "Selesaikan tes", "Simpan jawaban", "Jawaban tidak dapat disimpan. Silakan coba lagi."],
+};
+
+const studyTestTranslations: Partial<Record<Locale, Record<string, string>>> =
+  Object.fromEntries(
+    Object.entries(studyTestRows).map(([locale, values]) => {
+      if (values.length !== studyTestTranslationKeys.length)
+        throw new Error(`Study test translation count mismatch for ${locale}`);
+      return [locale, Object.fromEntries(studyTestTranslationKeys.map((key, index) => [key, values[index]!]))];
+    })
+  );
+
 export function setActiveLocale(locale: Locale) {
   activeLocale = locale;
 }
@@ -52,7 +258,14 @@ export function getDictionary(locale: Locale) {
 
 export function trStatic(source: string, locale: Locale = activeLocale) {
   const catalog = dictionary[locale] as Record<string, string> | undefined;
-  return supplementalTranslations[locale]?.[source] ?? catalog?.[source] ?? source;
+  return (
+    supplementalTranslations[locale]?.[source] ??
+    appearanceTranslations[locale]?.[source] ??
+    reportTranslations[locale]?.[source] ??
+    studyTestTranslations[locale]?.[source] ??
+    catalog?.[source] ??
+    source
+  );
 }
 
 export function getDirection(locale: Locale) {

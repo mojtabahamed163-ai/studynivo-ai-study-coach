@@ -1,9 +1,23 @@
-import { and, asc, desc, eq, lte } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
+import { createHash } from "node:crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
   flashcards,
   materials,
+  materialJobs,
   quizAnswers,
   quizAttempts,
   savedItems,
@@ -15,6 +29,29 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { chunkText, selectRelevantChunks } from "./ai/materialProcessor";
+import { generateSourceQuiz } from "./ai/quizGeneration";
+import {
+  nextUnansweredQuestionIndex,
+  redactQuizAttempt,
+  redactQuizQuestions,
+  shouldRevealQuizFeedback,
+  visibleQuizScore,
+} from "./quizSecurity";
+import {
+  buildUnresolvedMistakeReviews,
+  rankStudySignals,
+  type MistakeReviewHistoryItem,
+  type StudySignal,
+} from "./studyManager";
+import {
+  decodeBase64Payload,
+  hasExpectedSignature,
+  MaterialKind,
+  MAX_AUDIO_BYTES,
+  MAX_MATERIAL_BYTES,
+  sanitizeMaterialName,
+} from "./materialValidation";
+import { storageGetSignedUrl, storagePut } from "./storage";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -274,24 +311,56 @@ export async function createStudySession(
     if (!topicOwner[0])
       throw new Error("Topic does not belong to this subject");
   }
-  const result = await db
-    .insert(studySessions)
-    .values({
+  return db.transaction(async tx => {
+    await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+      .for("update");
+    await tx
+      .update(studySessions)
+      .set({ status: "paused" })
+      .where(
+        and(
+          eq(studySessions.userId, userId),
+          eq(studySessions.status, "active")
+        )
+      );
+    const result = await tx.insert(studySessions).values({
       userId,
       subjectId: input.subjectId,
       topicId: input.topicId ?? null,
       durationMinutes: input.durationMinutes,
       status: "active",
     });
+    const rows = await tx
+      .select()
+      .from(studySessions)
+      .where(
+        and(
+          eq(studySessions.id, Number(result[0].insertId)),
+          eq(studySessions.userId, userId)
+        )
+      )
+      .limit(1);
+    return rows[0];
+  });
+}
+
+export async function getActiveStudySession(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
   const rows = await db
     .select()
     .from(studySessions)
     .where(
       and(
-        eq(studySessions.id, Number(result[0].insertId)),
-        eq(studySessions.userId, userId)
+        eq(studySessions.userId, userId),
+        inArray(studySessions.status, ["active", "paused"])
       )
     )
+    .orderBy(desc(studySessions.startedAt))
     .limit(1);
   return rows[0];
 }
@@ -303,24 +372,78 @@ export async function updateStudySession(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db
-    .update(studySessions)
-    .set({
-      elapsedSeconds: input.elapsedSeconds,
-      status: input.status,
-      completedAt: input.status === "completed" ? new Date() : null,
-    })
-    .where(
-      and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId))
-    );
-  const rows = await db
-    .select()
-    .from(studySessions)
-    .where(
-      and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId))
-    )
-    .limit(1);
-  return rows[0];
+  return db.transaction(async tx => {
+    await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+      .for("update");
+    const rows = await tx
+      .select()
+      .from(studySessions)
+      .where(
+        and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId))
+      )
+      .limit(1)
+      .for("update");
+    const session = rows[0];
+    if (!session) throw new Error("Study session not found");
+    if (session.status === "completed") {
+      if (input.status !== "completed")
+        throw new Error("Completed study sessions cannot be reopened");
+      return session;
+    }
+    if (input.elapsedSeconds > session.durationMinutes * 60)
+      throw new Error("Elapsed time exceeds the session duration");
+
+    if (input.status === "active")
+      await tx
+        .update(studySessions)
+        .set({ status: "paused" })
+        .where(
+          and(
+            eq(studySessions.userId, userId),
+            eq(studySessions.status, "active"),
+            ne(studySessions.id, sessionId)
+          )
+        );
+
+    const completedAt = input.status === "completed" ? new Date() : null;
+    await tx
+      .update(studySessions)
+      .set({
+        elapsedSeconds: input.elapsedSeconds,
+        status: input.status,
+        completedAt,
+      })
+      .where(
+        and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId))
+      );
+    if (input.status === "completed") {
+      const completedMinutes = Math.floor(input.elapsedSeconds / 60);
+      if (completedMinutes > 0)
+        await tx
+          .update(subjects)
+          .set({
+            minutesStudied: sql`${subjects.minutesStudied} + ${completedMinutes}`,
+          })
+          .where(
+            and(
+              eq(subjects.id, session.subjectId),
+              eq(subjects.userId, userId)
+            )
+          );
+    }
+    const updated = await tx
+      .select()
+      .from(studySessions)
+      .where(
+        and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId))
+      )
+      .limit(1);
+    return updated[0];
+  });
 }
 
 export async function addSavedItem(
@@ -375,6 +498,182 @@ export async function listDueFlashcardsForUser(userId: number) {
       )
     )
     .orderBy(asc(flashcards.nextReviewAt));
+}
+
+export async function listMistakeReviewsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .select({
+      subjectId: quizAttempts.subjectId,
+      subjectName: subjects.name,
+      questions: quizAttempts.questions,
+      questionIndex: quizAnswers.questionIndex,
+      selectedAnswer: quizAnswers.answer,
+      confidence: quizAnswers.confidence,
+      isCorrect: quizAnswers.isCorrect,
+      createdAt: quizAnswers.createdAt,
+    })
+    .from(quizAnswers)
+    .innerJoin(
+      quizAttempts,
+      and(
+        eq(quizAttempts.id, quizAnswers.attemptId),
+        eq(quizAttempts.userId, userId),
+        eq(quizAttempts.status, "completed")
+      )
+    )
+    .innerJoin(
+      subjects,
+      and(
+        eq(subjects.id, quizAttempts.subjectId),
+        eq(subjects.userId, userId)
+      )
+    )
+    .where(eq(quizAnswers.userId, userId))
+    .orderBy(desc(quizAnswers.createdAt))
+    .limit(500);
+  const history: MistakeReviewHistoryItem[] = [];
+  for (const row of rows) {
+    const questions = row.questions as Array<{
+      topicId?: number;
+      topic?: string;
+      prompt?: string;
+      answer?: string;
+      explanation?: string;
+      sourceRef?: string;
+    }>;
+    const question = questions[row.questionIndex];
+    if (!question?.prompt || !question.answer) continue;
+    history.push({
+      key: `${row.subjectId}:${question.topicId ?? question.prompt}`,
+      subjectId: row.subjectId,
+      subjectName: row.subjectName,
+      topicId: question.topicId,
+      topicName: question.topic,
+      prompt: question.prompt,
+      selectedAnswer: row.selectedAnswer ?? "",
+      correctAnswer: question.answer,
+      explanation: question.explanation,
+      sourceRef: question.sourceRef || "Subject material",
+      isCorrect: row.isCorrect,
+      confidence: row.confidence,
+      createdAt: row.createdAt,
+    });
+  }
+  return buildUnresolvedMistakeReviews(history);
+}
+
+export async function getStudyRecommendationForUser(
+  userId: number,
+  availableMinutes = 30
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const [userSubjects, cards, mistakeReviews, sessions] = await Promise.all([
+    listSubjects(userId),
+    db.select().from(flashcards).where(eq(flashcards.userId, userId)),
+    listMistakeReviewsForUser(userId),
+    db
+      .select()
+      .from(studySessions)
+      .where(eq(studySessions.userId, userId))
+      .orderBy(desc(studySessions.startedAt))
+      .limit(300),
+  ]);
+  type Aggregate = {
+    dueReviews: number;
+    repeatedMistakes: number;
+    confidenceTotal: number;
+    confidenceCount: number;
+    lastStudiedAt?: Date;
+  };
+  const aggregates = new Map<string, Aggregate>();
+  const getAggregate = (subjectId: number, topicId?: number | null) => {
+    const key = `${subjectId}:${topicId ?? "none"}`;
+    const current = aggregates.get(key) ?? {
+      dueReviews: 0,
+      repeatedMistakes: 0,
+      confidenceTotal: 0,
+      confidenceCount: 0,
+    };
+    aggregates.set(key, current);
+    return current;
+  };
+  const now = new Date();
+  const confidenceScores = { low: 30, medium: 65, high: 95 } as const;
+  for (const card of cards) {
+    const aggregate = getAggregate(card.subjectId, card.topicId);
+    if (card.nextReviewAt <= now) aggregate.dueReviews += 1;
+    aggregate.repeatedMistakes += Math.max(0, card.mistakeCount);
+    if (card.confidence) {
+      aggregate.confidenceTotal += confidenceScores[card.confidence];
+      aggregate.confidenceCount += 1;
+    }
+    if (
+      card.lastReviewedAt &&
+      (!aggregate.lastStudiedAt || card.lastReviewedAt > aggregate.lastStudiedAt)
+    )
+      aggregate.lastStudiedAt = card.lastReviewedAt;
+  }
+  for (const review of mistakeReviews) {
+    const aggregate = getAggregate(review.subjectId, review.topicId);
+    aggregate.dueReviews += 1;
+    aggregate.repeatedMistakes += review.missedCount;
+    if (review.confidence) {
+      aggregate.confidenceTotal += confidenceScores[review.confidence];
+      aggregate.confidenceCount += 1;
+    }
+    const reviewedAt = new Date(review.createdAt);
+    if (!aggregate.lastStudiedAt || reviewedAt > aggregate.lastStudiedAt)
+      aggregate.lastStudiedAt = reviewedAt;
+  }
+  const lastSessionByTopic = new Map<string, (typeof sessions)[number]>();
+  for (const session of sessions) {
+    if (session.topicId === null) continue;
+    const key = `${session.subjectId}:${session.topicId}`;
+    if (!lastSessionByTopic.has(key)) lastSessionByTopic.set(key, session);
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const signals: StudySignal[] = userSubjects.flatMap(subject => {
+    const examDate = subject.examDate ? new Date(subject.examDate) : undefined;
+    const examDays = examDate
+      ? Math.ceil(
+          (new Date(examDate.getFullYear(), examDate.getMonth(), examDate.getDate()).getTime() -
+            today.getTime()) /
+            86_400_000
+        )
+      : undefined;
+    return subject.topics.map(topic => {
+      const aggregate = aggregates.get(`${subject.id}:${topic.id}`);
+      const session = lastSessionByTopic.get(`${subject.id}:${topic.id}`);
+      const lastStudiedAt = [
+        aggregate?.lastStudiedAt,
+        session?.startedAt,
+      ].filter((value): value is Date => Boolean(value)).sort((a, b) => b.getTime() - a.getTime())[0];
+      return {
+        subjectId: subject.id,
+        subjectName: subject.name,
+        topicId: topic.id,
+        topicName: topic.name,
+        mastery: topic.mastery,
+        examDays,
+        repeatedMistakes: aggregate?.repeatedMistakes ?? 0,
+        dueReviews: aggregate?.dueReviews ?? 0,
+        confidence:
+          aggregate && aggregate.confidenceCount > 0
+            ? aggregate.confidenceTotal / aggregate.confidenceCount
+            : undefined,
+        minutesRemaining:
+          session && session.status !== "completed"
+            ? Math.max(0, session.durationMinutes - Math.ceil(session.elapsedSeconds / 60))
+            : undefined,
+        lastStudiedAt: lastStudiedAt?.toISOString(),
+      };
+    });
+  });
+  return rankStudySignals(signals, availableMinutes);
 }
 
 export async function listFlashcards(
@@ -493,36 +792,42 @@ export async function reviewFlashcard(
 export async function createQuizAttempt(
   userId: number,
   subjectId: number,
-  kind: "practice" | "mock"
+  kind: "practice" | "mock",
+  locale = "en"
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const subject = await getSubject(userId, subjectId);
   if (!subject) throw new Error("Subject not found");
-  const topicsForQuiz = (
-    kind === "practice"
-      ? subject.topics.filter(topic => topic.isWeak || topic.mastery < 70)
-      : subject.topics
-  ).slice(0, 10);
-  const questions = (topicsForQuiz.length ? topicsForQuiz : subject.topics).map(
-    topic => ({
-      topicId: topic.id,
-      topic: topic.name,
-      prompt: `Which action best checks reliable recall of ${topic.name}?`,
-      options: [
-        "Read it once",
-        "Explain it and answer a new question",
-        "Skip it until the exam",
-      ],
-      answer: "Explain it and answer a new question",
-      sourceRef: topic.sourceRef || "Subject material",
-    })
+  if (!subject.materials.some(material => material.status === "indexed" && material.textContent))
+    throw new Error("NO_INDEXED_MATERIAL");
+  const practiceTopics = subject.topics.filter(
+    topic => topic.isWeak || topic.mastery < 70
   );
-  if (!questions.length) throw new Error("NO_INDEXED_TOPICS");
+  const topicsForQuiz = (
+    kind === "practice" && practiceTopics.length
+      ? practiceTopics
+      : subject.topics
+  );
+  if (!topicsForQuiz.length) throw new Error("NO_INDEXED_TOPICS");
+  const questions = await generateSourceQuiz(
+    topicsForQuiz.map(topic => ({
+      id: topic.id,
+      name: topic.name,
+      mastery: topic.mastery,
+    })),
+    subject.materials.map(material => ({
+      name: material.name,
+      textContent: material.textContent,
+      status: material.status,
+    })),
+    locale,
+    kind
+  );
   const result = await db
     .insert(quizAttempts)
     .values({ userId, subjectId, kind, questions, total: questions.length });
-  return db
+  const rows = await db
     .select()
     .from(quizAttempts)
     .where(
@@ -531,8 +836,10 @@ export async function createQuizAttempt(
         eq(quizAttempts.userId, userId)
       )
     )
-    .limit(1)
-    .then(rows => rows[0]);
+    .limit(1);
+  const attempt = rows[0];
+  if (!attempt) throw new Error("Failed to create quiz attempt");
+  return redactQuizAttempt(attempt);
 }
 
 export async function answerQuizQuestion(
@@ -546,35 +853,52 @@ export async function answerQuizQuestion(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db
-    .select()
-    .from(quizAttempts)
-    .where(
-      and(eq(quizAttempts.id, input.attemptId), eq(quizAttempts.userId, userId))
-    )
-    .limit(1);
-  const attempt = rows[0];
-  if (!attempt || attempt.status !== "active")
-    throw new Error("Quiz attempt not active");
-  const questions = attempt.questions as Array<{ answer: string }>;
-  const question = questions[input.questionIndex];
-  if (!question) throw new Error("Question not found");
-  const isCorrect = question.answer === input.answer;
-  const previous = await db
-    .select({ id: quizAnswers.id })
-    .from(quizAnswers)
-    .where(
-      and(
-        eq(quizAnswers.attemptId, input.attemptId),
-        eq(quizAnswers.userId, userId),
-        eq(quizAnswers.questionIndex, input.questionIndex)
+  return db.transaction(async tx => {
+    const rows = await tx
+      .select()
+      .from(quizAttempts)
+      .where(
+        and(
+          eq(quizAttempts.id, input.attemptId),
+          eq(quizAttempts.userId, userId)
+        )
       )
+      .limit(1)
+      .for("update");
+    const attempt = rows[0];
+    if (!attempt || attempt.status !== "active")
+      throw new Error("Quiz attempt not active");
+    const questions = attempt.questions as Array<{
+      answer: string;
+      options?: string[];
+      prompt?: string;
+      topic?: string;
+      sourceRef?: string;
+      explanation?: string;
+    }>;
+    const question = questions[input.questionIndex];
+    if (!question) throw new Error("Question not found");
+    if (question.options && !question.options.includes(input.answer))
+      throw new Error("ANSWER_NOT_IN_OPTIONS");
+    const previousAnswers = await tx
+      .select({ questionIndex: quizAnswers.questionIndex })
+      .from(quizAnswers)
+      .where(
+        and(
+          eq(quizAnswers.attemptId, input.attemptId),
+          eq(quizAnswers.userId, userId)
+        )
+      );
+    const answeredIndexes = previousAnswers.map(answer => answer.questionIndex);
+    if (answeredIndexes.includes(input.questionIndex))
+      throw new Error("QUESTION_ALREADY_ANSWERED");
+    if (
+      input.questionIndex !==
+      nextUnansweredQuestionIndex(attempt.total, answeredIndexes)
     )
-    .limit(1);
-  if (previous[0]) throw new Error("QUESTION_ALREADY_ANSWERED");
-  await db
-    .insert(quizAnswers)
-    .values({
+      throw new Error("QUESTIONS_MUST_BE_ANSWERED_IN_ORDER");
+    const isCorrect = question.answer === input.answer;
+    await tx.insert(quizAnswers).values({
       userId,
       attemptId: input.attemptId,
       questionIndex: input.questionIndex,
@@ -582,28 +906,126 @@ export async function answerQuizQuestion(
       confidence: input.confidence,
       isCorrect,
     });
+    const answers = await tx
+      .select()
+      .from(quizAnswers)
+      .where(
+        and(
+          eq(quizAnswers.attemptId, input.attemptId),
+          eq(quizAnswers.userId, userId)
+        )
+      );
+    const completed = answers.length >= attempt.total;
+    const score = answers.filter(answer => answer.isCorrect).length;
+    const revealFeedback = shouldRevealQuizFeedback(
+      attempt.kind,
+      completed ? "completed" : "active"
+    );
+    await tx
+      .update(quizAttempts)
+      .set({
+        score,
+        status: completed ? "completed" : "active",
+        completedAt: completed ? new Date() : null,
+      })
+      .where(
+        and(eq(quizAttempts.id, input.attemptId), eq(quizAttempts.userId, userId))
+      );
+    return {
+      isCorrect: revealFeedback ? isCorrect : undefined,
+      score: visibleQuizScore(
+        attempt.kind,
+        completed ? "completed" : "active",
+        score
+      ),
+      total: attempt.total,
+      completed,
+      correctAnswer: revealFeedback ? question.answer : undefined,
+      sourceRef: revealFeedback
+        ? question.sourceRef || "Subject material"
+        : undefined,
+      explanation: revealFeedback
+        ? question.explanation ||
+          `Active recall is strongest when you explain ${question.topic || "the idea"} and answer a new question without looking back.`
+        : undefined,
+    };
+  });
+}
+
+export async function getQuizAttemptProgress(
+  userId: number,
+  attemptId: number,
+  subjectId: number,
+  kind: "practice" | "mock"
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const attempts = await db
+    .select()
+    .from(quizAttempts)
+    .where(
+      and(
+        eq(quizAttempts.id, attemptId),
+        eq(quizAttempts.userId, userId),
+        eq(quizAttempts.subjectId, subjectId),
+        eq(quizAttempts.kind, kind)
+      )
+    )
+    .limit(1);
+  const attempt = attempts[0];
+  if (!attempt) throw new Error("Quiz attempt not found");
   const answers = await db
     .select()
     .from(quizAnswers)
     .where(
       and(
-        eq(quizAnswers.attemptId, input.attemptId),
+        eq(quizAnswers.attemptId, attemptId),
         eq(quizAnswers.userId, userId)
       )
-    );
-  const completed = answers.length >= attempt.total;
-  const score = answers.filter(answer => answer.isCorrect).length;
-  await db
-    .update(quizAttempts)
-    .set({
-      score,
-      status: completed ? "completed" : "active",
-      completedAt: completed ? new Date() : null,
-    })
-    .where(
-      and(eq(quizAttempts.id, input.attemptId), eq(quizAttempts.userId, userId))
-    );
-  return { isCorrect, score, total: attempt.total, completed };
+    )
+    .orderBy(asc(quizAnswers.questionIndex));
+  const questions = attempt.questions as Array<{
+    prompt?: string;
+    answer?: string;
+    sourceRef?: string;
+    explanation?: string;
+    topic?: string;
+  }>;
+  const revealFeedback = shouldRevealQuizFeedback(attempt.kind, attempt.status);
+  const reportAnswers = answers.flatMap(answer => {
+    const question = questions[answer.questionIndex];
+    if (!question) return [];
+    return [{
+      questionIndex: answer.questionIndex,
+      prompt: question.prompt || "",
+      selectedAnswer: answer.answer,
+      ...(revealFeedback
+        ? {
+            correctAnswer: question.answer || "",
+            explanation:
+              question.explanation ||
+              `Review ${question.topic || "this concept"} using the source material.`,
+            sourceRef: question.sourceRef || "Subject material",
+            isCorrect: answer.isCorrect,
+          }
+        : {}),
+      confidence: answer.confidence,
+    }];
+  });
+  return {
+    id: attempt.id,
+    subjectId: attempt.subjectId,
+    kind: attempt.kind,
+    status: attempt.status,
+    score: visibleQuizScore(
+      attempt.kind,
+      attempt.status,
+      attempt.score ?? 0
+    ),
+    total: attempt.total,
+    questions: redactQuizQuestions(attempt.questions),
+    answers: reportAnswers,
+  };
 }
 
 export async function listSavedItems(userId: number) {
@@ -671,13 +1093,7 @@ export async function searchSubjectMaterials(
     .slice(0, limit);
 }
 
-import { createHash } from "node:crypto";
-import { materialJobs } from "../drizzle/schema";
-import { storageGetSignedUrl, storagePut } from "./storage";
-
-const MAX_MATERIAL_BYTES = 20 * 1024 * 1024;
-const MAX_AUDIO_BYTES = 50 * 1024 * 1024;
-const MATERIAL_TYPES = new Map([
+const MATERIAL_TYPES = new Map<string, MaterialKind>([
   ["application/pdf", "pdf"],
   [
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -693,47 +1109,6 @@ const MATERIAL_TYPES = new Map([
   ["audio/webm", "audio"],
 ]);
 
-function decodeBase64Payload(payload: string, kind: string) {
-  const clean = payload.replace(/^data:[^;]+;base64,/, "");
-  const data = Buffer.from(clean, "base64");
-  if (
-    !data.length ||
-    data.length > (kind === "audio" ? MAX_AUDIO_BYTES : MAX_MATERIAL_BYTES)
-  )
-    throw new Error("FILE_TOO_LARGE_OR_EMPTY");
-  return data;
-}
-
-function hasExpectedSignature(data: Buffer, kind: string, mimeType: string) {
-  if (kind === "pdf") return data.subarray(0, 5).toString("ascii") === "%PDF-";
-  if (kind === "docx") return data.subarray(0, 2).toString("ascii") === "PK";
-  if (kind === "image")
-    return (
-      data.subarray(0, 8).toString("hex") === "89504e470d0a1a0a" ||
-      data.subarray(0, 3).toString("hex") === "ffd8ff" ||
-      data.subarray(0, 4).toString("ascii") === "RIFF"
-    );
-  if (kind === "audio") {
-    if (mimeType === "audio/mpeg")
-      return (
-        data.subarray(0, 3).toString("ascii") === "ID3" ||
-        (data[0] === 0xff && (data[1] & 0xe0) === 0xe0)
-      );
-    if (mimeType === "audio/wav")
-      return (
-        data.subarray(0, 4).toString("ascii") === "RIFF" &&
-        data.subarray(8, 12).toString("ascii") === "WAVE"
-      );
-    if (mimeType === "audio/ogg")
-      return data.subarray(0, 4).toString("ascii") === "OggS";
-    if (mimeType === "audio/webm")
-      return data.subarray(0, 4).toString("hex") === "1a45dfa3";
-    if (mimeType === "audio/mp4")
-      return data.subarray(4, 8).toString("ascii") === "ftyp";
-  }
-  return false;
-}
-
 export async function createUploadedMaterial(
   userId: number,
   input: { subjectId: number; name: string; mimeType: string; base64: string }
@@ -748,9 +1123,10 @@ export async function createUploadedMaterial(
   if (!owner[0]) throw new Error("Subject not found");
   const kind = MATERIAL_TYPES.get(input.mimeType);
   if (!kind) throw new Error("UNSUPPORTED_FILE_TYPE");
-  const data = decodeBase64Payload(input.base64, kind);
+  const data = decodeBase64Payload(input.base64, kind, input.mimeType);
   if (!hasExpectedSignature(data, kind, input.mimeType))
     throw new Error("FILE_SIGNATURE_MISMATCH");
+  const safeName = sanitizeMaterialName(input.name);
   const contentHash = createHash("sha256").update(data).digest("hex");
   const duplicate = await db
     .select({ id: materials.id })
@@ -764,18 +1140,46 @@ export async function createUploadedMaterial(
     )
     .limit(1);
   if (duplicate[0])
-    return { duplicate: true, materialId: duplicate[0].id, buffer: data };
+    return {
+      duplicate: true as const,
+      materialId: duplicate[0].id,
+      buffer: data,
+    };
   const stored = await storagePut(
-    `subjects/${input.subjectId}/${contentHash}-${input.name}`,
+    `subjects/${input.subjectId}/${contentHash}`,
     data,
-    input.mimeType
+    input.mimeType,
+    { uniqueSuffix: false }
   );
-  const inserted = await db
-    .insert(materials)
-    .values({
+  return db.transaction(async tx => {
+    const lockedOwner = await tx
+      .select({ id: subjects.id })
+      .from(subjects)
+      .where(and(eq(subjects.id, input.subjectId), eq(subjects.userId, userId)))
+      .limit(1)
+      .for("update");
+    if (!lockedOwner[0]) throw new Error("Subject not found");
+    const duplicateAfterUpload = await tx
+      .select({ id: materials.id })
+      .from(materials)
+      .where(
+        and(
+          eq(materials.userId, userId),
+          eq(materials.subjectId, input.subjectId),
+          eq(materials.contentHash, contentHash)
+        )
+      )
+      .limit(1);
+    if (duplicateAfterUpload[0])
+      return {
+        duplicate: true as const,
+        materialId: duplicateAfterUpload[0].id,
+        buffer: data,
+      };
+    const inserted = await tx.insert(materials).values({
       userId,
       subjectId: input.subjectId,
-      name: input.name,
+      name: safeName,
       kind,
       mimeType: input.mimeType,
       storageKey: stored.key,
@@ -783,21 +1187,20 @@ export async function createUploadedMaterial(
       contentHash,
       status: "queued",
     });
-  const materialId = Number(inserted[0].insertId);
-  const job = await db
-    .insert(materialJobs)
-    .values({
+    const materialId = Number(inserted[0].insertId);
+    const job = await tx.insert(materialJobs).values({
       userId,
       materialId,
       type: kind === "audio" ? "transcribe" : "extract",
       status: "queued",
     });
-  return {
-    duplicate: false,
-    materialId,
-    jobId: Number(job[0].insertId),
-    buffer: data,
-  };
+    return {
+      duplicate: false as const,
+      materialId,
+      jobId: Number(job[0].insertId),
+      buffer: data,
+    };
+  });
 }
 
 export async function updateMaterialProcessing(
@@ -809,8 +1212,8 @@ export async function updateMaterialProcessing(
     pageCount?: number;
     audioDurationSeconds?: number;
     transcriptSegments?: unknown;
-    errorCode?: string;
-    errorMessage?: string;
+    errorCode?: string | null;
+    errorMessage?: string | null;
     detectedLanguage?: string;
     ocrConfidence?: number;
   }
@@ -843,12 +1246,80 @@ export async function updateMaterialJob(
     .update(materialJobs)
     .set({
       ...input,
+      attempts:
+        input.attempts ??
+        (input.status === "running"
+          ? sql`${materialJobs.attempts} + 1`
+          : undefined),
+      errorMessage: input.status === "running" ? null : input.errorMessage,
       startedAt: input.status === "running" ? new Date() : undefined,
       completedAt: ["completed", "failed"].includes(input.status)
         ? new Date()
-        : undefined,
+        : input.status === "running"
+          ? null
+          : undefined,
     })
     .where(and(eq(materialJobs.id, jobId), eq(materialJobs.userId, userId)));
+}
+
+export async function claimMaterialJob(userId: number, jobId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const staleBefore = new Date(Date.now() - 15 * 60 * 1000);
+  const result = await db
+    .update(materialJobs)
+    .set({ status: "running", startedAt: new Date(), completedAt: null })
+    .where(
+      and(
+        eq(materialJobs.id, jobId),
+        eq(materialJobs.userId, userId),
+        or(
+          eq(materialJobs.status, "queued"),
+          and(
+            eq(materialJobs.status, "running"),
+            or(
+              isNull(materialJobs.startedAt),
+              lt(materialJobs.startedAt, staleBefore)
+            )
+          )
+        )
+      )
+    );
+  return Number(result[0].affectedRows ?? 0) > 0;
+}
+
+export async function listRecoverableMaterialJobs() {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const staleBefore = new Date(Date.now() - 15 * 60 * 1000);
+  return db
+    .select({
+      userId: materialJobs.userId,
+      jobId: materialJobs.id,
+      materialId: materials.id,
+      kind: materials.kind,
+      mimeType: materials.mimeType,
+      storageKey: materials.storageKey,
+    })
+    .from(materialJobs)
+    .innerJoin(materials, eq(materialJobs.materialId, materials.id))
+    .where(
+      and(
+        inArray(materials.status, ["queued", "extracting", "indexing"]),
+        or(
+          eq(materialJobs.status, "queued"),
+          and(
+            eq(materialJobs.status, "running"),
+            or(
+              isNull(materialJobs.startedAt),
+              lt(materialJobs.startedAt, staleBefore)
+            )
+          )
+        )
+      )
+    )
+    .orderBy(asc(materialJobs.createdAt))
+    .limit(100);
 }
 
 export async function retryUploadedMaterial(
@@ -865,31 +1336,56 @@ export async function retryUploadedMaterial(
   const material = rows[0];
   if (!material?.storageKey || !material.mimeType)
     throw new Error("MATERIAL_NOT_RETRYABLE");
+  if (material.status !== "failed" && material.status !== "needs_review")
+    throw new Error("MATERIAL_NOT_RETRYABLE");
   const signedUrl = await storageGetSignedUrl(material.storageKey);
-  const response = await fetch(signedUrl);
+  const response = await fetch(signedUrl, {
+    signal: AbortSignal.timeout(60_000),
+  });
   if (!response.ok) throw new Error("MATERIAL_DOWNLOAD_FAILED");
+  const kind = material.kind as MaterialKind;
+  const maxBytes = kind === "audio" ? MAX_AUDIO_BYTES : MAX_MATERIAL_BYTES;
+  const contentLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > maxBytes)
+    throw new Error("FILE_TOO_LARGE_OR_EMPTY");
   const buffer = Buffer.from(await response.arrayBuffer());
-  const job = await db
-    .insert(materialJobs)
-    .values({
+  if (
+    !buffer.length ||
+    buffer.length > maxBytes ||
+    !hasExpectedSignature(buffer, kind, material.mimeType)
+  )
+    throw new Error("FILE_SIGNATURE_MISMATCH");
+  const jobId = await db.transaction(async tx => {
+    const locked = await tx
+      .select()
+      .from(materials)
+      .where(and(eq(materials.id, materialId), eq(materials.userId, userId)))
+      .limit(1)
+      .for("update");
+    const current = locked[0];
+    if (!current || (current.status !== "failed" && current.status !== "needs_review"))
+      throw new Error("MATERIAL_NOT_RETRYABLE");
+    const job = await tx.insert(materialJobs).values({
       userId,
       materialId,
-      type: material.kind === "audio" ? "transcribe" : "extract",
+      type: kind === "audio" ? "transcribe" : "extract",
       status: "queued",
     });
-  await db
-    .update(materials)
-    .set({
-      status: "queued",
-      errorCode: null,
-      errorMessage: null,
-      processedAt: null,
-    })
-    .where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
+    await tx
+      .update(materials)
+      .set({
+        status: "queued",
+        errorCode: null,
+        errorMessage: null,
+        processedAt: null,
+      })
+      .where(and(eq(materials.id, materialId), eq(materials.userId, userId)));
+    return Number(job[0].insertId);
+  });
   return {
-    jobId: Number(job[0].insertId),
+    jobId,
     buffer,
-    kind: material.kind as "pdf" | "docx" | "image" | "audio",
+    kind,
     mimeType: material.mimeType,
   };
 }

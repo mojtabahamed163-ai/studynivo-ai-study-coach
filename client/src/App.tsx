@@ -37,6 +37,7 @@ import {
   Mail,
   Menu,
   MessageCircle,
+  Moon,
   NotebookTabs,
   Pause,
   Phone,
@@ -46,6 +47,7 @@ import {
   Search,
   Settings2,
   Sparkles,
+  Sun,
   Target,
   Timer,
   Upload,
@@ -114,6 +116,8 @@ type View =
   | "progress"
   | "saved"
   | "settings";
+
+type Theme = "light" | "dark";
 
 const emptyWorkspace: Workspace = {
   subjects: [],
@@ -263,6 +267,11 @@ function useWorkspace(userId?: string) {
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const activeSessionQuery = trpc.workspace.activeSession.useQuery(undefined, {
+    enabled: Boolean(userId),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
   useEffect(() => {
     if (loadedKey === key) return;
     setWorkspace(readWorkspace(key));
@@ -328,6 +337,22 @@ function useWorkspace(userId?: string) {
       })),
     }));
   }, [savedItemsQuery.data, subjectsQuery.data]);
+  useEffect(() => {
+    const session = activeSessionQuery.data;
+    if (!session) return;
+    setWorkspace(current => ({
+      ...current,
+      session: {
+        id: String(session.id),
+        subjectId: String(session.subjectId),
+        topicId: session.topicId ? String(session.topicId) : "",
+        duration: session.durationMinutes,
+        elapsed: session.elapsedSeconds,
+        status: session.status === "paused" ? "paused" : "active",
+        startedAt: new Date(session.startedAt).toISOString(),
+      },
+    }));
+  }, [activeSessionQuery.data]);
   useEffect(() => {
     if (loadedKey === key) localStorage.setItem(key, JSON.stringify(workspace));
   }, [key, loadedKey, workspace]);
@@ -636,6 +661,8 @@ const navItems: Array<{ id: View; label: string; icon: typeof HomeIcon }> = [
 function AppShell({
   locale,
   onLocale,
+  theme,
+  onTheme,
   workspace,
   setWorkspace,
   user,
@@ -643,9 +670,11 @@ function AppShell({
 }: {
   locale: Locale;
   onLocale: (locale: Locale) => void;
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
   workspace: Workspace;
   setWorkspace: React.Dispatch<React.SetStateAction<Workspace>>;
-  user: { name?: string | null; email?: string | null } | null;
+  user: { id?: number; name?: string | null; email?: string | null } | null;
   logout: () => Promise<void>;
 }) {
   const [location, setLocation] = useLocation();
@@ -671,6 +700,7 @@ function AppShell({
   const subjectMatch = location.match(/^\/subjects\/([^/]+)/);
   const sessionMatch = location.match(/^\/session\/([^/]+)/);
   const practiceMatch = location.match(/^\/practice\/([^/]+)/);
+  const mockMatch = location.match(/^\/mock\/([^/]+)/);
   const activeSubject = subjectMatch
     ? workspace.subjects.find(subject => subject.id === subjectMatch[1])
     : undefined;
@@ -687,7 +717,8 @@ function AppShell({
     ].includes(location) ||
     Boolean(activeSubject) ||
     Boolean(sessionMatch) ||
-    Boolean(practiceMatch);
+    Boolean(practiceMatch) ||
+    Boolean(mockMatch);
   return (
     <div className="app-shell" dir={getDirection(locale)}>
       <aside className="app-sidebar">
@@ -761,10 +792,14 @@ function AppShell({
               setWorkspace={setWorkspace}
               onNavigate={setLocation}
             />
-          ) : practiceMatch ? (
+          ) : practiceMatch || mockMatch ? (
             <PersistedPracticeTest
-              subjectId={practiceMatch[1]}
-              onExit={() => setLocation(`/subjects/${practiceMatch[1]}`)}
+              subjectId={(practiceMatch ?? mockMatch)![1]}
+              kind={mockMatch ? "mock" : "practice"}
+              locale={locale}
+              onExit={() =>
+                setLocation(`/subjects/${(practiceMatch ?? mockMatch)![1]}`)
+              }
             />
           ) : activeSubject ? (
             <SubjectSpace
@@ -778,6 +813,7 @@ function AppShell({
             <Dashboard
               workspace={workspace}
               setWorkspace={setWorkspace}
+              userId={user?.id}
               onNavigate={setLocation}
             />
           ) : currentView === "subjects" ? (
@@ -795,7 +831,12 @@ function AppShell({
           ) : currentView === "saved" ? (
             <SavedItems workspace={workspace} setWorkspace={setWorkspace} />
           ) : (
-            <Settings locale={locale} onLocale={onLocale} />
+            <Settings
+              locale={locale}
+              onLocale={onLocale}
+              theme={theme}
+              onTheme={onTheme}
+            />
           )}
         </div>
       </main>
@@ -824,24 +865,82 @@ function AppShell({
 function Dashboard({
   workspace,
   setWorkspace,
+  userId,
   onNavigate,
 }: {
   workspace: Workspace;
   setWorkspace: React.Dispatch<React.SetStateAction<Workspace>>;
+  userId?: number;
   onNavigate: (path: string) => void;
 }) {
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const next = useMemo(
-    () =>
-      [...workspace.subjects].sort((a, b) => a.mastery - b.mastery)[0] ??
-      workspace.subjects[0],
-    [workspace.subjects]
+  const budgetKey = `studynivo-available-minutes-${userId ?? "preview"}`;
+  const [availableMinutes, setAvailableMinutes] = useState(() => {
+    const stored = Number(localStorage.getItem(budgetKey));
+    return [15, 30, 45, 60].includes(stored) ? stored : 30;
+  });
+  useEffect(() => {
+    localStorage.setItem(budgetKey, String(availableMinutes));
+  }, [budgetKey, availableMinutes]);
+  const studyRecommendation = trpc.workspace.studyRecommendation.useQuery(
+    { availableMinutes },
+    { enabled: Number.isInteger(userId) && Boolean(userId), retry: false }
   );
-  const topic = next?.topics.find(item => item.weak) ?? next?.topics[0];
-  const startSession = () => {
+  const recommendation = studyRecommendation.data;
+  const next = useMemo(() => {
+    const recommended = recommendation
+      ? workspace.subjects.find(
+          subject => subject.id === String(recommendation.subjectId)
+        )
+      : undefined;
+    return (
+      recommended ??
+      [...workspace.subjects].sort((a, b) => a.mastery - b.mastery)[0] ??
+      workspace.subjects[0]
+    );
+  }, [workspace.subjects, recommendation]);
+  const topic =
+    next?.topics.find(
+      item => item.id === String(recommendation?.topicId ?? "")
+    ) ??
+    next?.topics.find(item => item.weak) ??
+    next?.topics[0];
+  const recommendedMinutes = recommendation?.recommendedMinutes ?? 30;
+  const [sessionError, setSessionError] = useState("");
+  const startSessionMutation = trpc.workspace.startSession.useMutation();
+  const startSession = async () => {
     if (!next || !topic) return;
+    setSessionError("");
+    if (/^\d+$/.test(next.id)) {
+      try {
+        const created = await startSessionMutation.mutateAsync({
+          subjectId: Number(next.id),
+          topicId: /^\d+$/.test(topic.id) ? Number(topic.id) : undefined,
+          durationMinutes: recommendedMinutes,
+        });
+        const id = String(created.id);
+        setWorkspace(prev => ({
+          ...prev,
+          session: {
+            id,
+            subjectId: next.id,
+            topicId: topic.id,
+            duration: created.durationMinutes,
+            elapsed: created.elapsedSeconds,
+            status: "active",
+            startedAt: new Date(created.startedAt).toISOString(),
+          },
+        }));
+        onNavigate(`/session/${id}`);
+      } catch {
+        setSessionError(trStatic("Could not save this session. Please retry."));
+      }
+      return;
+    }
+    if (userId)
+      return setSessionError(trStatic("Could not save this session. Please retry."));
     const id = `session-${Date.now()}`;
     setWorkspace(prev => ({
       ...prev,
@@ -889,15 +988,35 @@ function Dashboard({
                   {topic?.name ?? "Upload your notes"}
                 </h2>
                 <p className="mt-3 max-w-[470px] text-sm leading-6 text-[#d5f0eb]">
-                  {topic?.note ??
-                    "Add a source and StudyNivo will build a focused next step."}
+                  {trStatic(
+                    recommendation?.reason ??
+                      topic?.note ??
+                      "Add a source and StudyNivo will build a focused next step."
+                  )}
                 </p>
               </div>
               <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-right">
                 <div className="text-[10px] font-bold uppercase tracking-[.12em] text-[#bde8df]">
                   {trStatic("Recommended")}
                 </div>
-                <div className="mt-1 text-xl font-extrabold">30 min</div>
+                <div className="mt-1 text-xl font-extrabold">
+                  {recommendedMinutes} min
+                </div>
+                <label className="mt-2 block text-[10px] font-bold text-[#d5f0eb]">
+                  <span>{trStatic("Time available")}</span>
+                  <select
+                    aria-label={trStatic("Time available")}
+                    className="mt-1 block w-full rounded-lg border border-white/20 bg-transparent px-2 py-1 text-xs text-white outline-none"
+                    value={availableMinutes}
+                    onChange={event => setAvailableMinutes(Number(event.target.value))}
+                  >
+                    {[15, 30, 45, 60].map(minutes => (
+                      <option key={minutes} value={minutes} className="text-[#17212b]">
+                        {minutes} min
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             </div>
             <div className="mt-7 flex flex-wrap items-center gap-2">
@@ -918,7 +1037,8 @@ function Dashboard({
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <button
                 className="rounded-xl bg-white px-4 py-3 text-xs font-extrabold text-[#0f766e] shadow-sm"
-                onClick={startSession}
+                disabled={startSessionMutation.isPending}
+                onClick={() => void startSession()}
               >
                 <Play className="mr-1.5 inline size-4" />
                 {trStatic("Start studying")}
@@ -931,6 +1051,11 @@ function Dashboard({
                 <ArrowRight className="ml-1.5 inline size-3.5" />
               </button>
             </div>
+            {sessionError && (
+              <p role="alert" className="mt-3 text-xs font-semibold text-white">
+                {sessionError}
+              </p>
+            )}
           </div>
         </div>
         <div className="card overflow-hidden p-0">
@@ -1363,8 +1488,31 @@ function SubjectSpace({
     }));
   }, [serverSubjectQuery.data, subject.id, setWorkspace]);
   const weakTopic = subject.topics.find(item => item.weak) ?? subject.topics[0];
-  const startSession = () => {
+  const startSessionMutation = trpc.workspace.startSession.useMutation();
+  const startSession = async () => {
     if (!weakTopic) return;
+    if (/^\d+$/.test(subject.id)) {
+      const created = await startSessionMutation.mutateAsync({
+        subjectId: Number(subject.id),
+        topicId: /^\d+$/.test(weakTopic.id) ? Number(weakTopic.id) : undefined,
+        durationMinutes: 30,
+      });
+      const id = String(created.id);
+      setWorkspace(prev => ({
+        ...prev,
+        session: {
+          id,
+          subjectId: subject.id,
+          topicId: weakTopic.id,
+          duration: created.durationMinutes,
+          elapsed: created.elapsedSeconds,
+          status: "active",
+          startedAt: new Date(created.startedAt).toISOString(),
+        },
+      }));
+      onNavigate(`/session/${id}`);
+      return;
+    }
     const id = `session-${Date.now()}`;
     setWorkspace(prev => ({
       ...prev,
@@ -1636,7 +1784,11 @@ function SubjectSpace({
       {tab === "practice" && (
         <PracticeTab
           subject={subject}
-          onPractice={() => onNavigate(`/practice/${subject.id}`)}
+          onPractice={kind =>
+            onNavigate(
+              `/${kind === "mock" ? "mock" : "practice"}/${subject.id}`
+            )
+          }
         />
       )}
       {tab === "flashcards" && (
@@ -2604,9 +2756,13 @@ function SavedItems({
 function Settings({
   locale,
   onLocale,
+  theme,
+  onTheme,
 }: {
   locale: Locale;
   onLocale: (locale: Locale) => void;
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
 }) {
   return (
     <>
@@ -2618,6 +2774,45 @@ function Settings({
         </p>
       </div>
       <div className="mt-8 grid max-w-3xl gap-4">
+        <div className="card p-6">
+          <div className="flex items-start gap-4">
+            <div className="grid size-10 place-items-center rounded-xl bg-[#eaf4f1] text-[#0f766e]">
+              {theme === "dark" ? (
+                <Moon className="size-5" />
+              ) : (
+                <Sun className="size-5" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-extrabold">
+                {trStatic("Appearance")}
+              </div>
+              <div className="mt-1 text-xs leading-5 text-[#879497]">
+                {trStatic("Choose how StudyNivo looks.")}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  aria-pressed={theme === "light"}
+                  className={theme === "light" ? "btn-primary" : "btn-light"}
+                  onClick={() => onTheme("light")}
+                >
+                  <Sun className="size-4" />
+                  {trStatic("Light appearance")}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={theme === "dark"}
+                  className={theme === "dark" ? "btn-primary" : "btn-light"}
+                  onClick={() => onTheme("dark")}
+                >
+                  <Moon className="size-4" />
+                  {trStatic("Dark appearance")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="card p-6">
           <div className="flex items-start gap-4">
             <div className="grid size-10 place-items-center rounded-xl bg-[#eaf4f1] text-[#0f766e]">
@@ -2723,6 +2918,7 @@ function StudySession({
   const updateSessionMutation = trpc.workspace.updateSession.useMutation();
   const [elapsed, setElapsed] = useState(session?.elapsed ?? 0);
   const [paused, setPaused] = useState(session?.status === "paused");
+  const [actionError, setActionError] = useState("");
   useEffect(() => {
     if (!session || paused) return;
     const id = window.setInterval(
@@ -2746,37 +2942,45 @@ function StudySession({
         </button>
       </div>
     );
-  const finish = () => {
-    if (/^\d+$/.test(sessionId)) {
-      void updateSessionMutation.mutateAsync({
-        sessionId: Number(sessionId),
-        elapsedSeconds: elapsed,
-        status: "completed",
-      });
+  const finish = async () => {
+    setActionError("");
+    try {
+      if (/^\d+$/.test(sessionId))
+        await updateSessionMutation.mutateAsync({
+          sessionId: Number(sessionId),
+          elapsedSeconds: elapsed,
+          status: "completed",
+        });
+    } catch {
+      setActionError(trStatic("Could not save this session. Please retry."));
+      return;
     }
+    const completedMinutes = Math.floor(elapsed / 60);
     setWorkspace(prev => ({
       ...prev,
-      minutesToday: prev.minutesToday + Math.max(1, Math.round(elapsed / 60)),
+      minutesToday: prev.minutesToday + completedMinutes,
       subjects: prev.subjects.map(item =>
         item.id === subject.id
-          ? {
-              ...item,
-              minutes: item.minutes + Math.max(1, Math.round(elapsed / 60)),
-            }
+          ? { ...item, minutes: item.minutes + completedMinutes }
           : item
       ),
       session: undefined,
     }));
     onNavigate("/dashboard");
   };
-  const pause = () => {
+  const pause = async () => {
     const nextPaused = !paused;
-    if (/^\d+$/.test(sessionId)) {
-      void updateSessionMutation.mutateAsync({
-        sessionId: Number(sessionId),
-        elapsedSeconds: elapsed,
-        status: nextPaused ? "paused" : "active",
-      });
+    setActionError("");
+    try {
+      if (/^\d+$/.test(sessionId))
+        await updateSessionMutation.mutateAsync({
+          sessionId: Number(sessionId),
+          elapsedSeconds: elapsed,
+          status: nextPaused ? "paused" : "active",
+        });
+    } catch {
+      setActionError(trStatic("Could not save this session. Please retry."));
+      return;
     }
     setPaused(nextPaused);
     setWorkspace(prev =>
@@ -2789,14 +2993,35 @@ function StudySession({
               status: nextPaused ? "paused" : "active",
             },
           }
+      : prev
+    );
+  };
+  const leave = async () => {
+    setActionError("");
+    try {
+      if (!paused && /^\d+$/.test(sessionId))
+        await updateSessionMutation.mutateAsync({
+          sessionId: Number(sessionId),
+          elapsedSeconds: elapsed,
+          status: "paused",
+        });
+    } catch {
+      setActionError(trStatic("Could not save this session. Please retry."));
+      return;
+    }
+    setWorkspace(prev =>
+      prev.session
+        ? { ...prev, session: { ...prev.session, elapsed, status: "paused" } }
         : prev
     );
+    onNavigate("/dashboard");
   };
   return (
     <div className="mx-auto max-w-3xl">
       <button
         className="btn-quiet -ml-2 mb-5"
-        onClick={() => onNavigate("/dashboard")}
+        disabled={updateSessionMutation.isPending}
+        onClick={() => void leave()}
       >
         <ArrowRight className="size-4 rotate-180" />
         {trStatic("Exit session")}
@@ -2880,7 +3105,11 @@ function StudySession({
             </div>
           </div>
           <div className="mt-7 flex flex-wrap gap-3">
-            <button className="btn-primary" onClick={pause}>
+            <button
+              className="btn-primary"
+              disabled={updateSessionMutation.isPending}
+              onClick={() => void pause()}
+            >
               {paused ? (
                 <>
                   <Play className="size-4" />
@@ -2893,11 +3122,20 @@ function StudySession({
                 </>
               )}
             </button>
-            <button className="btn-light" onClick={finish}>
+            <button
+              className="btn-light"
+              disabled={updateSessionMutation.isPending}
+              onClick={() => void finish()}
+            >
               <Check className="size-4 text-[#0f766e]" />
               {trStatic("Complete session")}
             </button>
           </div>
+          {actionError && (
+            <div role="alert" className="mt-4 text-xs font-semibold text-[#b14b45]">
+              {actionError}
+            </div>
+          )}
           <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-[#8a9798]">
             <CircleCheck className="size-4 text-[#0f766e]" />
             {trStatic("Your progress is saved when you pause or complete.")}
@@ -3101,11 +3339,13 @@ function AuthGate() {
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const submitCredentials = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const response = await fetch("/api/auth/credentials", {
         method: "POST",
@@ -3114,6 +3354,16 @@ function AuthGate() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Authentication failed");
+      if (body.requiresSignIn) {
+        setMode("login");
+        setPassword("");
+        setNotice(
+          trStatic(
+            "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue."
+          )
+        );
+        return;
+      }
       window.location.href = "/";
     } catch (cause) {
       setError(
@@ -3173,6 +3423,7 @@ function AuthGate() {
           {mode === "register" && (
             <input
               required
+              maxLength={120}
               className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
               placeholder={trStatic("Your name")}
               value={name}
@@ -3188,12 +3439,14 @@ function AuthGate() {
                 ? trStatic("Email address")
                 : trStatic("Phone number with country code")
             }
+            maxLength={320}
             value={identifier}
             onChange={event => setIdentifier(event.target.value)}
           />
           <input
             required
             minLength={8}
+            maxLength={128}
             type="password"
             className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
             placeholder={trStatic("Password (8+ characters)")}
@@ -3202,6 +3455,11 @@ function AuthGate() {
           />
           {error && (
             <p className="text-xs font-semibold text-[#b14b45]">{error}</p>
+          )}
+          {notice && (
+            <p role="status" className="text-xs font-semibold text-[#0f766e]">
+              {notice}
+            </p>
           )}
           <button
             disabled={busy}
@@ -3242,6 +3500,9 @@ function AuthGate() {
 }
 export default function App() {
   const { user, loading, logout } = useAuth();
+  const [theme, setTheme] = useState<Theme>(() =>
+    localStorage.getItem("studynivo-theme") === "dark" ? "dark" : "light"
+  );
   const [locale, setLocale] = useState<Locale>(
     () => (localStorage.getItem("studynivo-locale") as Locale) || "en"
   );
@@ -3253,6 +3514,11 @@ export default function App() {
     document.documentElement.lang = locale;
     document.documentElement.dir = getDirection(locale);
   }, [locale]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem("studynivo-theme", theme);
+  }, [theme]);
   if (loading)
     return (
       <div className="grid min-h-screen place-items-center bg-[#f8f8f5]">
@@ -3277,6 +3543,8 @@ export default function App() {
       setWorkspace={setWorkspace}
       user={user}
       logout={logout}
+      theme={theme}
+      onTheme={setTheme}
     />
   );
 }
