@@ -20,9 +20,11 @@ type LoginMethod = "email" | "phone";
 
 function sessionSecret() {
   const value =
-    process.env.STUDYNIVO_SESSION_SECRET ?? process.env.AUTH_SESSION_SECRET;
+    process.env.STUDYNIVO_SESSION_SECRET ??
+    process.env.AUTH_SESSION_SECRET ??
+    process.env.MANUS_JWT_SECRET;
   if (!value || value.length < 32)
-    throw new Error("STUDYNIVO_SESSION_SECRET must be at least 32 characters");
+    throw new Error("A session secret must be at least 32 characters");
   return new TextEncoder().encode(value);
 }
 
