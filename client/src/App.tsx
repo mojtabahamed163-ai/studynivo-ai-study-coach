@@ -1718,14 +1718,14 @@ function SubjectSpace({
   const flashcard =
     subject.topics[flashIndex % Math.max(1, subject.topics.length)];
   const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "materials", label: "Materials" },
-    { id: "topics", label: "Topics" },
-    { id: "study", label: "Study" },
-    { id: "practice", label: "Practice" },
-    { id: "flashcards", label: "Flashcards" },
-    { id: "chat", label: "Ask material" },
-    { id: "progress", label: "Progress" },
+    { id: "overview", label: trStatic("Overview") },
+    { id: "materials", label: trStatic("Materials") },
+    { id: "topics", label: trStatic("Topics") },
+    { id: "study", label: trStatic("Study") },
+    { id: "practice", label: trStatic("Practice") },
+    { id: "flashcards", label: trStatic("Flashcards") },
+    { id: "chat", label: trStatic("Ask material") },
+    { id: "progress", label: trStatic("Progress") },
   ] as const;
   return (
     <>
@@ -1746,8 +1746,8 @@ function SubjectSpace({
         </div>
         <div className="flex items-center gap-2">
           <span className="source-pill">
-            <Target className="size-3.5 text-[#0f766e]" /> {subject.mastery}%
-            mastery
+            <Target className="size-3.5 text-[#0f766e]" /> {subject.mastery}%{" "}
+            {trStatic("mastery")}
           </span>
           {subject.examDate && (
             <span className="source-pill">
@@ -1958,7 +1958,9 @@ function SubjectOverview({
               {trStatic("Where your attention goes next")}
             </h2>
           </div>
-          <span className="topic-chip">{subject.mastery}% overall</span>
+          <span className="topic-chip">
+            {subject.mastery}% {trStatic("overall")}
+          </span>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {subject.topics.map(topic => (
