@@ -26,7 +26,12 @@ export function isTrustedApiMutation(request: HeaderRequest): boolean {
   const fetchSite = header(request, "sec-fetch-site")?.toLowerCase();
   if (fetchSite === "cross-site") return false;
 
-  const host = header(request, "host")?.toLowerCase();
+  // Published Webdev requests arrive through a reverse proxy. Compare the
+  // browser origin with the externally visible forwarded host when present;
+  // fall back to the direct request host for local and direct deployments.
+  const host = (
+    header(request, "x-forwarded-host") ?? header(request, "host")
+  )?.toLowerCase();
   const source = header(request, "origin") ?? header(request, "referer");
   if (!host || !source || source === "null") return false;
 

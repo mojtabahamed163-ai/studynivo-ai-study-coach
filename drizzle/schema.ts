@@ -238,7 +238,7 @@ export const quizAttempts = mysqlTable(
     userId: int("userId").notNull(),
     subjectId: int("subjectId").notNull(),
     kind: mysqlEnum("kind", ["practice", "mock"]).default("practice").notNull(),
-    status: mysqlEnum("quiz_status", ["active", "completed"])
+    status: mysqlEnum("status", ["active", "completed"])
       .default("active")
       .notNull(),
     questions: json("questions").notNull(),

@@ -1,114 +1,54 @@
-# StudyNivo — دليل ربط وتشغيل حساب Manus آخر
+# StudyNivo — دليل إعداد حساب Manus جديد
 
-هذا الملف مخصص للحساب الذي سيستورد مستودع GitHub ويكمل StudyNivo. اقرأه أولًا، ثم اقرأ `docs/PROJECT_HANDOFF.md` و`docs/برومبت.txt`.
+اقرأ أولًا `docs/HANDOFF_FOR_NEW_MANUS_ACCOUNT.md` ثم `docs/PROMPT_FOR_NEW_MANUS_ACCOUNT.md` و`docs/NEW_MANUS_ACCOUNT_CHECKLIST.md`.
 
-## 1. قبل الاستيراد
+## 1. الاستيراد
 
-تأكد أن حساب Manus الآخر يستطيع الوصول إلى مستودع GitHub الخاص:
+استورد المستودع الخاص:
 
- `https://github.com/mojtabahamed163-ai/studynivo-ai-study-coach`
+`https://github.com/mojtabahamed163-ai/studynivo-ai-study-coach`
 
- المستودع **Private**. يجب دعوة حساب GitHub المستخدم في Manus كـcollaborator، أو ربط GitHub Integration في ذلك الحساب بنفس حساب GitHub الذي يملك المستودع. لا ترسل مفاتيح API أو كلمات المرور داخل الدردشة.
+من الفرع `main` إلى **مشروع WebDev جديد** في حساب Manus الجديد. لا تربط Resource URI لمشروع قديم، ولا تنشئ قالبًا فارغًا. GitHub ينقل الشيفرة والوثائق فقط، لا قاعدة البيانات أو الأسرار.
 
- **تنبيه الحساب الجديد:** GitHub ينقل الشيفرة والوثائق فقط، ولا يمنح وصولًا إلى مشروع WebDev أو قاعدة بيانات أو أسرار حساب Manus آخر. إذا لم يملك هذا الحساب صلاحية على المشروع القديم، أنشئ مشروع WebDev جديدًا مملوكًا لهذا الحساب من المستودع نفسه؛ لا تحاول إرفاق Resource URI قديم ولا تطلب بيانات دخول الحساب السابق. سينشأ رابط جديد مستقل، ولن يتغير الموقع القديم.
+اختر Web / Server-enabled، فعّل Server وDatabase، واضبط runtime على المنفذ 3000 إذا طلبت المنصة ذلك. أبقِ النشر التلقائي مغلقًا حتى نجاح الفحوص وE2E.
 
-استخدم الفرع `main` وآخر `HEAD` على GitHub؛ لا تعتمد أرقام commits أقدم موجودة في سجلات تاريخية. لا تنشئ التطبيق من قالب فارغ ولا تنسخ الملفات فوق مشروع آخر؛ استورد هذا المستودع نفسه إلى **مشروع WebDev جديد عند الحاجة** حتى تبقى migrations والتاريخ والوثائق متزامنة. اقرأ `docs/HANDOFF_FOR_NEW_MANUS_ACCOUNT.md` للحالة الحالية الدقيقة و`docs/PROMPT_FOR_NEW_MANUS_ACCOUNT.md` للنص الجاهز لبدء الجلسة.
+## 2. الخدمات والأسرار
 
-## 2. استيراد المستودع في Manus
+فعّل Manus Database وManus Service API/AI وStorage. فعّل Speech عند اختبار الصوت فقط. اضبط `STUDYNIVO_SESSION_SECRET` جديدًا عشوائيًا لا يقل عن 32 حرفًا عبر آلية Secrets. لا تنسخ `DATABASE_URL` أو مفاتيح Manus من أي مشروع آخر.
 
-1. افتح حساب Manus الآخر واختر إنشاء/استيراد Web Project من GitHub.
-2. اختر المستودع `mojtabahamed163-ai/studynivo-ai-study-coach`.
-3. اختر الفرع `main`.
-4. إذا طلب Manus نوع المشروع، اختر **Web / Server-enabled**، وليس static-only؛ لأن StudyNivo يستخدم Express/tRPC، قاعدة بيانات، مصادقة، Storage، AI وSpeech.
-5. استخدم مجلد المشروع الجذر الذي يحتوي `package.json`, `server/`, `client/`, `drizzle/`, و`Dockerfile`.
-6. اضبط runtime الأساسي على المنفذ `3000`، واستعمل listener على `0.0.0.0` في بيئة Cloud/Preview. لا تغيّر المسارات العامة التالية: `/api/health`, `/manus-routes.json`, `/manus-storage/`.
-7. لا تفعل النشر التلقائي قبل نجاح الفحوصات الأولية؛ يمكن تفعيله لاحقًا بعد مراجعة النتيجة.
+المتغيرات المدارة الأساسية: `DATABASE_URL`, `STUDYNIVO_SESSION_SECRET`, `MANUS_API_URL`, `MANUS_API_KEY`, `MANUS_PROJECT_ID`, و`PORT`.
 
-إذا كان حساب Manus يطلب اختيار القدرات، فعّل **Server** و**Database**. Storage وAuthentication وService API/AI يجب أن تكون متاحة من تكاملات Manus. لا تضف Stripe أو Payments؛ المنتج الحالي لا يطلب دفعًا.
-
-## 3. إعداد الأسرار والبيئة
-
-لا توجد قيم أسرار يجب نسخها من GitHub. يجب على حساب Manus الآخر تفعيل/ربط الخدمات من إعدادات المشروع، وسيحمّل Webdev المتغيرات المدارة وقت التشغيل. أهم المتغيرات التي يقرأها الكود هي:
-
-| الغرض | المتغير/المصدر | الملاحظة |
-|---|---|---|
-| قاعدة البيانات | `DATABASE_URL` | يوفرها Manus Database؛ لا تضع DSN في GitHub. |
-| مصادقة جلسات StudyNivo | `STUDYNIVO_SESSION_SECRET` | يجب ضبطه في Secrets بقيمة عشوائية لا تقل عن 32 حرفًا؛ لا تضعه في GitHub. |
-| مزودات OAuth | غير مفعّلة حاليًا | تسجيل الدخول الفعلي بالبريد أو الهاتف؛ لا تضبط OAuth غير المستخدم. |
-| Storage + AI + Speech | `MANUS_API_URL`, `MANUS_API_KEY` | يجب أن تكون من Service API/Storage المدارة، ولا تُنسخ إلى المحادثة. |
-| معرف المشروع | `MANUS_PROJECT_ID` | يحقنه Webdev عند ربط المشروع. |
-| مالك اختياري | `OWNER_OPEN_ID` | اختياري للـadmin role؛ لا حاجة له للتشغيل الأساسي. |
-| منفذ التشغيل | `PORT` | اتركه 3000 في Preview أو احترم المنفذ الذي يحدده Manus. |
-
-إذا كانت خدمة AI أو Speech غير مفعلة، سيظل البناء والفحص ممكنين، لكن Ask Your Material وAnalyze topics ورفع الصوت ستعيد أخطاء خدمة واضحة. لا تستبدلها بمفتاح OpenAI شخصي إلا إذا قرر صاحب المشروع ذلك صراحة؛ العقد الحالي يستخدم Manus built-in AI. تسجيل الدخول الحالي الفعلي هو Email/Phone، وليس Google/Apple/Microsoft OAuth.
-
-## 4. تثبيت الحزم وتشغيل قاعدة البيانات
+## 3. التثبيت والترحيلات والتشغيل
 
 من جذر المشروع:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm check
+pnpm test --run
+pnpm build
 pnpm db:migrate
-```
-
-استخدم `pnpm db:migrate` لتطبيق migrations الموجودة بعد ربط قاعدة اختبار/قاعدة المشروع وأخذ نسخة احتياطية مناسبة. تشمل السلسلة حاليًا `0000` حتى `0009`، مع migration إضافة لإصدار الجلسة وتوسيع نص المادة؛ لم تُطبّق هذه السلسلة من بيئة الفحص لأن `DATABASE_URL` غير متاح فيها. استخدم `pnpm db:push` فقط بعد مراجعة migration الناتجة. لا تحذف أو تعِد ترتيب أي ملف migration.
-
-بعد نجاح قاعدة البيانات:
-
-```bash
 pnpm dev
 ```
 
-أو، إذا كان Manus يطلب تشغيلًا ثابتًا للواجهة فقط، لا تستخدم ذلك للمشروع الكامل إلا للفحص البصري؛ الأمر الصحيح للتطبيق الكامل هو `pnpm dev`.
+شغّل الخادم من Terminal/جلسة WebDev المرتبطة حتى تُحمّل متغيرات Manus. إذا ظهر `Database is not available`، أعد تشغيل الخادم من الجلسة الصحيحة؛ لا تغيّر الكود لإخفاء المشكلة.
 
-## 5. فحص الجاهزية
-
-نفّذ بالترتيب:
+تحقق:
 
 ```bash
-pnpm check
-pnpm test
-pnpm build
 curl -fsS http://127.0.0.1:3000/api/health
 curl -fsS http://127.0.0.1:3000/manus-routes.json
 ```
 
-النتيجة المتوقعة:
+## 4. الإصلاحات التي يجب الحفاظ عليها
 
-- TypeScript بلا أخطاء.
-- الاختبارات الحالية تمر؛ تضم 13 ملف اختبار و41 اختبارًا، ومنها CSRF والجلسات ومحدد محاولات الدخول والتحقق من المواد والمصادر وحماية إجابات/درجات Full Mock وترجمة تدفق الاختبارات وStudy Manager وi18n.
-- `pnpm build` ينجح. تحذير Vite الخاص بـ`/api/platform/config.js` وتحذير bundle الأكبر من 500 kB معروفان وغير مانعين حاليًا.
-- health يعيد `{"status":"ok"}`.
-- routes يعيد JSON لا HTML fallback.
+- `server/_core/csrf.ts`: يستخدم `X-Forwarded-Host` خلف البروكسي؛ لا تعطل same-origin protection.
+- `server/ai/quizGeneration.ts`: يستخدم `Text section N` كمصدر للاختبار حتى يطابق Topics.
+- `drizzle/schema.ts`: `quiz_attempts.status` يطابق عمود migration الحالي `status`.
+- `client/public/manus-routes.json`: يجب أن يبقى متزامنًا مع المسارات.
 
-بعد ذلك اختبر يدويًا في Preview: تسجيل الدخول، إنشاء Subject، رفع TXT/PDF/DOCX/صورة/صوت، انتظار processing، الضغط على Analyze topics، تشغيل Practice وFull Mock المولّد من المصدر، الإجابة ثم إعادة تحميل التقرير، تجربة العربية/RTL والمظهرين، واستئناف جلسة محفوظة. هذه مسارات لا يمكن إثبات تكاملها مع قاعدة حقيقية في بيئة لا تحتوي `DATABASE_URL`.
+## 5. الاختبار والنشر
 
-## 6. قواعد مهمة عند مواصلة التطوير
+نفّذ E2E الكامل الموجود في `docs/NEW_MANUS_ACCOUNT_CHECKLIST.md`. ركّز على حفظ Full Mock وإعادة تحميل التقرير ومنع تسريب الإجابات قبل الإكمال. دقّق نصوص اللغات الـ14؛ في آخر فحص بقيت بعض تسميات Dashboard/Materials بالإنجليزية داخل العربية.
 
-- ابدأ بقراءة `docs/PROJECT_HANDOFF.md`؛ فهو يذكر ما تم وما لم يتم.
-- حافظ على عزل `userId` في كل query وmutation، ولا تثق بـIDs القادمة من المتصفح دون ownership check.
-- أي إجابة AI يجب أن تكون grounded في مادة المستخدم، وأي نقص سياق يجب أن يظهر للمستخدم بدل التخمين.
-- حدّث `client/public/manus-routes.json` عند إضافة route جديد.
-- استخدم `pnpm check`, `pnpm test`, `pnpm build`, و`git diff --check` قبل كل commit.
-- لا force-push. احتفظ بتاريخ main.
-- إذا كان remote `origin` يشير إلى Manus، لا تستبدله؛ يمكن استخدام remote منفصل باسم `github` للمزامنة.
-- حدّث `docs/PROJECT_HANDOFF.md` بعد كل مرحلة، وسجّل ما بقي غير مكتمل أو فشل.
-
-## 7. مسار العمل المقترح بعد التشغيل
-
-المرحلة التالية الموصى بها هي اختبار end-to-end بعد تهيئة Server/Database/Storage/AI في بيئة Manus؛ ركّز على upload → indexing → Analyze topics → Full Mock/Practice → إعادة تحميل التقرير → Review Me والجلسات. أضيف CI إلى GitHub لتشغيل `check/test/build` على `main` وطلبات الدمج. التحسينات الدلالية الأوسع ما تزال لاحقة، وليست بديلًا عن اختبار التكامل الفعلي.
-
-## 8. تعافي الأخطاء
-
-إذا فشل `pnpm install`: تحقق من Node/pnpm، ثم استخدم `corepack enable` ونسخة `pnpm@10.18.0` المحددة في `package.json`.
-
-إذا فشل `db:migrate`: تحقق من Database capability و`DATABASE_URL`، ولا تعدّل migration يدويًا قبل قراءة الخطأ وحالة جدول migrations.
-
-إذا ظهر `Storage config missing`: فعّل Storage/Service API في مشروع Manus ولا تضع المفتاح داخل الكود.
-
-إذا ظهر `Built-in AI is not available`: فعّل Manus Service API/AI. لا تعتبر هذا عطلًا في retrieval قبل التحقق من البيئة.
-
-إذا فشل النشر بسبب `/run/buildkit/buildkitd.sock`: هذه مشكلة بنية نشر مؤقتة موثقة سابقًا، وليست دليلًا على فشل الكود؛ أعد المحاولة من Dashboard بعد استقرار BuildKit وافحص log النشر.
-
-إذا تعارضت تغييرات حساب Manus الآخر مع GitHub، اسحب `origin/main` و`github/main` وافحص الفرق يدويًا. لا تستخدم force-push ولا تحذف ملفات المشروع لاستبدالها بقالب جديد.
+بعد نجاح check/test/build وE2E فقط: احفظ checkpoint في مشروع الحساب الجديد، انشره، اختبر الرابط الجديد، وسجله في handoff. لا تنشر إلى الموقع القديم.

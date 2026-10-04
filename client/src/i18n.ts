@@ -42,6 +42,93 @@ const supplementalTranslations: Partial<Record<Locale, Record<string, string>>> 
   id: { "30 minutes": "30 menit", "6 days": "6 hari", "2 tasks": "2 tugas", min: "mnt", days: "hari", "min studied": "mnt belajar", "weak topics": "topik lemah", Streak: "Rangkaian", Understand: "Pahami", "Turn lectures, notes, images, and audio into topics, explanations, and source-linked summaries.": "Ubah kuliah, catatan, gambar, dan audio menjadi topik, penjelasan, dan ringkasan dengan sumber.", Practice: "Berlatih", "Get questions that fit the subject — from definitions to calculations and open-ended reasoning.": "Dapatkan pertanyaan sesuai pelajaran, dari definisi dan perhitungan hingga penalaran terbuka.", "Know what is next": "Tahu langkah berikutnya", "Study Manager weighs exams, weak areas, confidence, and time to choose the next useful session.": "Pengelola belajar mempertimbangkan ujian, kelemahan, keyakinan, dan waktu untuk memilih sesi berikutnya.", "Separate subject spaces": "Ruang terpisah tiap pelajaran", "Save what matters": "Simpan yang penting", "Sessions that resume": "Sesi yang dapat dilanjutkan", "Private by design": "Privasi sejak awal desain", Low: "Rendah", Medium: "Sedang", High: "Tinggi", Page: "Halaman", Score: "Nilai", "One focused question": "Satu pertanyaan fokus", "Strong topic": "Topik kuat", "Keep it warm": "Pertahankan kemampuan", "Next step": "Langkah berikutnya", "Review mistakes": "Tinjau kesalahan", Confidence: "Keyakinan", Easy: "Mudah", Good: "Bagus", "Need review": "Perlu ditinjau" },
 };
 
+const authAndLandingTranslations: Record<Locale, Record<string, string>> = {
+  en: {
+    "Create account": "Create account",
+    "Create a new account": "Create a new account",
+    "Already have an account? Sign in": "Already have an account? Sign in",
+    "Stop wondering what you should study.": "Stop wondering what you should study.",
+  },
+  ar: {
+    "Create account": "إنشاء حساب",
+    "Create a new account": "إنشاء حساب جديد",
+    "Already have an account? Sign in": "لديك حساب بالفعل؟ تسجيل الدخول",
+    "Stop wondering what you should study.": "توقف عن التساؤل عما يجب دراسته.",
+  },
+  es: {
+    "Create account": "Crear cuenta",
+    "Create a new account": "Crear una cuenta nueva",
+    "Already have an account? Sign in": "¿Ya tienes una cuenta? Inicia sesión",
+    "Stop wondering what you should study.": "Deja de preguntarte qué deberías estudiar.",
+  },
+  pt: {
+    "Create account": "Criar conta",
+    "Create a new account": "Criar uma nova conta",
+    "Already have an account? Sign in": "Já tem uma conta? Entre",
+    "Stop wondering what you should study.": "Pare de se perguntar o que você deve estudar.",
+  },
+  fr: {
+    "Create account": "Créer un compte",
+    "Create a new account": "Créer un nouveau compte",
+    "Already have an account? Sign in": "Vous avez déjà un compte ? Connectez-vous",
+    "Stop wondering what you should study.": "Arrêtez de vous demander quoi étudier.",
+  },
+  de: {
+    "Create account": "Konto erstellen",
+    "Create a new account": "Neues Konto erstellen",
+    "Already have an account? Sign in": "Du hast bereits ein Konto? Anmelden",
+    "Stop wondering what you should study.": "Hör auf, dich zu fragen, was du lernen solltest.",
+  },
+  it: {
+    "Create account": "Crea account",
+    "Create a new account": "Crea un nuovo account",
+    "Already have an account? Sign in": "Hai già un account? Accedi",
+    "Stop wondering what you should study.": "Smetti di chiederti cosa dovresti studiare.",
+  },
+  tr: {
+    "Create account": "Hesap oluştur",
+    "Create a new account": "Yeni hesap oluştur",
+    "Already have an account? Sign in": "Zaten hesabınız var mı? Giriş yapın",
+    "Stop wondering what you should study.": "Ne çalışmanız gerektiğini merak etmeyi bırakın.",
+  },
+  ja: {
+    "Create account": "アカウントを作成",
+    "Create a new account": "新しいアカウントを作成",
+    "Already have an account? Sign in": "すでにアカウントがありますか？サインイン",
+    "Stop wondering what you should study.": "何を勉強すべきか、もう迷わないでください。",
+  },
+  ko: {
+    "Create account": "계정 만들기",
+    "Create a new account": "새 계정 만들기",
+    "Already have an account? Sign in": "이미 계정이 있나요? 로그인",
+    "Stop wondering what you should study.": "무엇을 공부해야 할지 더 이상 고민하지 마세요.",
+  },
+  zh: {
+    "Create account": "创建账户",
+    "Create a new account": "创建新账户",
+    "Already have an account? Sign in": "已有账户？登录",
+    "Stop wondering what you should study.": "别再纠结该学什么。",
+  },
+  hi: {
+    "Create account": "खाता बनाएं",
+    "Create a new account": "नया खाता बनाएं",
+    "Already have an account? Sign in": "पहले से खाता है? साइन इन करें",
+    "Stop wondering what you should study.": "क्या पढ़ना चाहिए, इस पर सोचना बंद करें।",
+  },
+  ru: {
+    "Create account": "Создать аккаунт",
+    "Create a new account": "Создать новый аккаунт",
+    "Already have an account? Sign in": "Уже есть аккаунт? Войти",
+    "Stop wondering what you should study.": "Хватит гадать, что вам следует изучать.",
+  },
+  id: {
+    "Create account": "Buat akun",
+    "Create a new account": "Buat akun baru",
+    "Already have an account? Sign in": "Sudah punya akun? Masuk",
+    "Stop wondering what you should study.": "Berhenti bertanya-tanya apa yang harus dipelajari.",
+  },
+};
+
 const coreUiTranslations: Partial<Record<Locale, Record<string, string>>> = {
   ar: { "Home": "الرئيسية", "Subjects": "المواد", "Study plan": "خطة الدراسة", "Review me": "راجعني", "Progress": "التقدم", "Saved items": "العناصر المحفوظة", "Language": "اللغة", "Sign out": "تسجيل الخروج", "Today's goal": "هدف اليوم", "A realistic pace": "وتيرة واقعية", "Study streak": "سلسلة الدراسة", "Consistency matters": "الاستمرارية مهمة", "Overall progress": "التقدم العام", "Upcoming exams": "الامتحانات القادمة", "Dates shape priority": "المواعيد تحدد الأولوية", "of": "من", "today": "اليوم", "day study streak": "يوم من سلسلة الدراسة", "Continue where you paused": "تابع من حيث توقفت", "optional": "اختياري", "e.g. Physics": "مثال: الفيزياء", "Overall mastery": "الإتقان العام", "Across your spaces": "عبر مساحاتك", "Study time": "وقت الدراسة", "Logged in sessions": "المسجل في الجلسات", "Current streak": "السلسلة الحالية", "Personal consistency": "استمراريتك الشخصية", "Saved for review": "محفوظ للمراجعة", "Your evidence bank": "بنك أدلتك", "One focused question": "سؤال واحد مركز", "Low confidence matters": "الثقة المنخفضة مهمة" },
   es: { "Home": "Inicio", "Subjects": "Materias", "Study plan": "Plan de estudio", "Review me": "Repásame", "Progress": "Progreso", "Saved items": "Elementos guardados", "Language": "Idioma", "Sign out": "Cerrar sesión", "Today's goal": "Objetivo de hoy", "A realistic pace": "Un ritmo realista", "Study streak": "Racha de estudio", "Consistency matters": "La constancia importa", "Overall progress": "Progreso general", "Upcoming exams": "Próximos exámenes", "Dates shape priority": "Las fechas definen la prioridad", "of": "de", "today": "hoy", "day study streak": "días de racha de estudio", "Continue where you paused": "Continúa donde lo dejaste", "optional": "opcional", "e.g. Physics": "p. ej., Física", "Overall mastery": "Dominio general", "Across your spaces": "En tus espacios", "Study time": "Tiempo de estudio", "Logged in sessions": "Registrado en sesiones", "Current streak": "Racha actual", "Personal consistency": "Constancia personal", "Saved for review": "Guardado para repasar", "Your evidence bank": "Tu banco de evidencias", "One focused question": "Una pregunta enfocada", "Low confidence matters": "La baja confianza importa" },
@@ -274,6 +361,7 @@ export function getDictionary(locale: Locale) {
 export function trStatic(source: string, locale: Locale = activeLocale) {
   const catalog = dictionary[locale] as Record<string, string> | undefined;
   return (
+    authAndLandingTranslations[locale]?.[source] ??
     supplementalTranslations[locale]?.[source] ??
     appearanceTranslations[locale]?.[source] ??
     coreUiTranslations[locale]?.[source] ??

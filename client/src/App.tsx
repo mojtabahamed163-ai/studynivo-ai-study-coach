@@ -450,8 +450,7 @@ function Landing({
               {trStatic("Your personal AI study coach")}
             </div>
             <h1 className="hero-title">
-              {trStatic("Stop wondering")}
-              <em>{trStatic("what to study.")}</em>
+              {trStatic("Stop wondering what you should study.")}
             </h1>
             <p className="hero-copy">
               {trStatic(

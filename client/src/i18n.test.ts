@@ -64,4 +64,21 @@ describe("StudyNivo localization", () => {
       }
     }
   });
+
+  it("translates authentication actions and the landing headline in every locale", () => {
+    const keys = [
+      "Create account",
+      "Create a new account",
+      "Already have an account? Sign in",
+      "Stop wondering what you should study.",
+    ];
+    for (const locale of supportedLocales.filter(item => item.code !== "en")) {
+      for (const key of keys) {
+        expect(trStatic(key, locale.code), `${locale.code}: ${key}`).not.toBe(key);
+      }
+    }
+    expect(trStatic("Stop wondering what you should study.", "ar")).toBe(
+      "توقف عن التساؤل عما يجب دراسته."
+    );
+  });
 });

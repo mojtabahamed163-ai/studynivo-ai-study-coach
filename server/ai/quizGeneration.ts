@@ -149,7 +149,9 @@ export async function generateSourceQuiz(
   const chunks = indexed.flatMap(material =>
     chunkText(material.textContent!, 1000, 120).map(chunk => ({
       ...chunk,
-      sourceRef: material.name,
+      // Topic extraction records the stable text-section reference. Reuse it
+      // here so quiz validation and explanations point to the same source.
+      sourceRef: chunk.sourceRef,
     }))
   );
   const localeName = localeNames[locale] ?? "English";

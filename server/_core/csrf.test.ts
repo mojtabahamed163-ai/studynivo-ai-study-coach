@@ -22,6 +22,19 @@ describe("same-origin API mutation guard", () => {
     ).toBe(true);
   });
 
+  it("allows published same-origin mutations using the forwarded public host", () => {
+    expect(
+      isTrustedApiMutation({
+        method: "POST",
+        headers: {
+          host: "internal-webdev:3000",
+          "x-forwarded-host": host,
+          origin: `https://${host}`,
+        },
+      })
+    ).toBe(true);
+  });
+
   it("rejects a cross-site Origin even when Fetch Metadata is absent", () => {
     expect(
       isTrustedApiMutation({
