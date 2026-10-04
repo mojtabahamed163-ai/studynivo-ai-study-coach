@@ -57,6 +57,18 @@ describe("StudyNivo localization", () => {
     expect(trStatic("Mock exam report", "ar")).toBe("تقرير الاختبار التجريبي");
   });
 
+  it("does not leave the Arabic study workspace in English", () => {
+    const keys = [
+      "Build cards from topics", "Grounded search", "Review queue", "Your queue is clear",
+      "Search is unavailable right now. Try again when the material index is ready.",
+      "Searching indexed sources…", "Your name", "Phone number with country code",
+      "Paste a lecture, notes, or a key passage…", "e.g. inheritance patterns",
+    ];
+    for (const key of keys) {
+      expect(trStatic(key, "ar"), `ar: ${key}`).not.toBe(key);
+    }
+  });
+
   it("translates the full test and report flow in every supported locale", () => {
     for (const locale of supportedLocales.filter(item => item.code !== "en")) {
       for (const key of studyTestTranslationKeys) {

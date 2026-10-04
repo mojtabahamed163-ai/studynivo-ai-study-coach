@@ -2036,7 +2036,7 @@ function MaterialsTab({
           className="textarea mt-5"
           value={note}
           onChange={event => setNote(event.target.value)}
-          placeholder="Paste a lecture, notes, or a key passage…"
+          placeholder={trStatic("Paste a lecture, notes, or a key passage…")}
         />
         <button className="btn-primary mt-3 w-full" onClick={onAddNote}>
           <Plus className="size-4" />

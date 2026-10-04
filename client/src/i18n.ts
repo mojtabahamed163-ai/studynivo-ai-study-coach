@@ -334,6 +334,41 @@ export const studyTestTranslationKeys = [
   "Could not save this answer. Please retry.",
 ] as const;
 
+const arabicQualityTranslations: Record<string, string> = {
+  "A wrong answer or a correct answer with low confidence returns here. A repeated mistake rises in priority until reliable recall is demonstrated.": "تعود إلى هنا الإجابة الخاطئة أو الإجابة الصحيحة مع ثقة منخفضة. وترتفع أولوية الخطأ المتكرر حتى يثبت تذكّر المعلومة بثقة.",
+  "Build cards from topics": "أنشئ بطاقات من الموضوعات",
+  "More": "المزيد",
+  Email: "البريد الإلكتروني",
+  "Email address": "عنوان البريد الإلكتروني",
+  "Generate grounded cards from the topics in this subject, or come back when another card is due.": "أنشئ بطاقات مرتبطة بمصادر هذه المادة، أو عُد عندما يحين موعد بطاقة أخرى.",
+  "Grounded in this subject material": "مرتبط بمصادر هذه المادة",
+  "Grounded in your subject material": "مرتبط بمصادر مادتك",
+  "Grounded search": "بحث موثق بالمصادر",
+  "No matching passage was found in this subject’s indexed material.": "لم يُعثر على مقطع مطابق في المواد المفهرسة لهذه المادة.",
+  Phone: "الهاتف",
+  "Phone number with country code": "رقم الهاتف مع رمز الدولة",
+  "Please wait...": "يرجى الانتظار…",
+  "Review queue": "طابور المراجعة",
+  Save: "حفظ",
+  Saved: "محفوظ",
+  "Search is unavailable right now. Try again when the material index is ready.": "البحث غير متاح الآن. حاول مرة أخرى بعد اكتمال فهرسة المادة.",
+  "Search only inside indexed sources in this subject space. Results keep their source context.": "يبحث داخل المصادر المفهرسة لهذه المادة فقط، مع إبقاء النتائج ضمن سياق مصدرها.",
+  "Searching indexed sources…": "جارٍ البحث في المصادر المفهرسة…",
+  "Sign in with your email or phone number to access your study space.": "سجّل الدخول باستخدام بريدك الإلكتروني أو رقم هاتفك للوصول إلى مساحة دراستك.",
+  "Spaced recall": "استرجاع متباعد",
+  "Time available": "الوقت المتاح",
+  Today: "اليوم",
+  "Your name": "اسمك",
+  "Your name, login identifier, and study data are saved securely in the database.": "يُحفظ اسمك وبيانات تسجيل الدخول وبيانات الدراسة بأمان في قاعدة البيانات.",
+  "Your queue is clear": "لا توجد بطاقات مستحقة للمراجعة",
+  due: "مستحقة",
+  "e.g. inheritance patterns": "مثلًا: أنماط التوارث",
+  "Paste a lecture, notes, or a key passage…": "ألصق محاضرة أو ملاحظات أو مقطعًا مهمًا…",
+  "Make StudyNivo feel natural to the way you study.": "اجعل StudyNivo ملائمًا لطريقة دراستك.",
+  "StudyNivo learns your subjects, your weak spots, your exam dates, and your real study rhythm — then turns them into one clear next step.": "يتعلّم StudyNivo موادك ونقاط ضعفك ومواعيد امتحاناتك وإيقاع دراستك الحقيقي، ثم يحولها إلى خطوة تالية واضحة.",
+  "Your recent sessions are short and consistent. StudyNivo will keep recommending focused 30–45 minute blocks instead of stretching the plan to an unrealistic two hours.": "جلساتك الأخيرة قصيرة ومنتظمة. سيواصل StudyNivo اقتراح فترات دراسة مركزة من 30 إلى 45 دقيقة بدلًا من تمديد الخطة إلى ساعتين غير واقعيتين.",
+};
+
 const studyTestRows: Partial<Record<Locale, readonly string[]>> = {
   ar: ["اختبر ما تتذكره.", "تُحفظ إجاباتك ومستوى ثقتك في سجل التعلم لهذه المادة.", "ينشئ الاختبار التجريبي سؤالًا موثقًا من المصدر لكل موضوع مفهرس، حتى 50 موضوعًا.", "جارٍ استعادة اختبارك المحفوظ…", "تعذرت استعادة هذا الاختبار. ارجع إلى المادة وابدأ مجددًا.", "لا توجد أسئلة متبقية في هذا الاختبار.", "ابدأ الاختبار المحفوظ", "جارٍ إعداد الأسئلة…", "العودة إلى المادة", "تعذر إنشاء أسئلة موثقة من المصدر. تحقق من المادة المفهرسة وحاول عند توفر خدمة الذكاء الاصطناعي.", "اختبار تجريبي محفوظ", "تدريب محفوظ", "تقرير الاختبار التجريبي", "تقرير التدريب", "تم حفظ نتيجتك.", "مراجعة الإجابات", "صحيح", "تحتاج إلى مراجعة", "إجابتك", "الإجابة الصحيحة", "المصدر", "الخروج من الاختبار", "إنهاء الاختبار", "حفظ الإجابة", "تعذر حفظ الإجابة. حاول مرة أخرى."],
   es: ["Pon a prueba lo que recuerdas.", "Tus respuestas y nivel de confianza se guardan en el historial de aprendizaje de esta asignatura.", "El examen simulado crea una pregunta basada en fuentes por cada tema indexado, hasta 50 temas.", "Restaurando tu prueba guardada…", "No se pudo restaurar esta prueba. Vuelve a la asignatura y empieza de nuevo.", "Esta prueba no tiene preguntas pendientes.", "Iniciar prueba guardada", "Preparando preguntas…", "Volver a la asignatura", "No se pudieron generar preguntas basadas en fuentes. Comprueba el material indexado e inténtalo cuando el servicio de IA esté disponible.", "Examen simulado guardado", "Práctica guardada", "Informe del examen simulado", "Informe de práctica", "Tu resultado se ha guardado.", "Revisión de respuestas", "Correcto", "Necesita repaso", "Tu respuesta", "Respuesta correcta", "Fuente", "Salir de la prueba", "Terminar prueba", "Guardar respuesta", "No se pudo guardar esta respuesta. Inténtalo de nuevo."],
@@ -372,6 +407,7 @@ export function trStatic(source: string, locale: Locale = activeLocale) {
   return (
     authAndLandingTranslations[locale]?.[source] ??
     supplementalTranslations[locale]?.[source] ??
+    (locale === "ar" ? arabicQualityTranslations[source] : undefined) ??
     appearanceTranslations[locale]?.[source] ??
     coreUiTranslations[locale]?.[source] ??
     reportTranslations[locale]?.[source] ??
