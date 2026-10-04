@@ -35,6 +35,8 @@ import {
   getActiveStudySession,
   listMistakeReviewsForUser,
   getStudyRecommendationForUser,
+  getUserLocale,
+  setUserLocale,
 } from "./db";
 import { extractTopicInsights } from "./ai/materialAnalysis";
 import { enqueueMaterialProcessing } from "./materialPipeline";
@@ -42,6 +44,16 @@ import { enqueueMaterialProcessing } from "./materialPipeline";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
+    locale: protectedProcedure.query(({ ctx }) => getUserLocale(ctx.user.id)),
+    setLocale: protectedProcedure
+      .input(
+        z.object({
+          locale: z
+            .string()
+            .regex(/^(en|ar|es|pt|fr|de|it|tr|ja|ko|zh|hi|ru|id)$/),
+        })
+      )
+      .mutation(({ ctx, input }) => setUserLocale(ctx.user.id, input.locale)),
     me: publicProcedure.query(opts => {
       const user = opts.ctx.user;
       if (!user) return null;

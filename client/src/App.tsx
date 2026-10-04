@@ -53,6 +53,8 @@ import {
   Upload,
   X,
   Zap,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
@@ -3340,11 +3342,36 @@ function AuthGate() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
+  const authError = (message: string) => {
+    const messages: Record<string, string> = {
+      "Cross-origin request rejected": trStatic(
+        "The request was rejected. Refresh the page and try again."
+      ),
+      "Enter your identifier and a password between 8 and 128 characters": trStatic(
+        "Password must be at least 8 characters."
+      ),
+      "Enter a valid email address": trStatic("Enter a valid email address"),
+      "Enter a valid phone number with country code": trStatic(
+        "Enter a valid phone number with country code"
+      ),
+      "Invalid email/phone or password": trStatic(
+        "The email/phone or password is incorrect."
+      ),
+      "Authentication failed": trStatic("Authentication failed. Try again."),
+    };
+    return messages[message] ?? message;
+  };
   const submitCredentials = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError("");
     setNotice("");
+    if (password.length < 8) {
+      setError(trStatic("Password must be at least 8 characters."));
+      setBusy(false);
+      return;
+    }
     try {
       const response = await fetch("/api/auth/credentials", {
         method: "POST",
@@ -3366,7 +3393,9 @@ function AuthGate() {
       window.location.href = "/";
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Authentication failed"
+        authError(
+          cause instanceof Error ? cause.message : "Authentication failed"
+        )
       );
     } finally {
       setBusy(false);
@@ -3442,16 +3471,43 @@ function AuthGate() {
             value={identifier}
             onChange={event => setIdentifier(event.target.value)}
           />
-          <input
-            required
-            minLength={8}
-            maxLength={128}
-            type="password"
-            className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
-            placeholder={trStatic("Password (8+ characters)")}
-            value={password}
-            onChange={event => setPassword(event.target.value)}
-          />
+          <div className="relative">
+            <input
+              required
+              minLength={8}
+              maxLength={128}
+              type={showPassword ? "text" : "password"}
+              aria-describedby="password-help"
+              className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 pr-12 text-sm outline-none focus:border-[#5aa99d]"
+              placeholder={trStatic("Password (8+ characters)")}
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+            />
+            <button
+              type="button"
+              aria-label={
+                showPassword
+                  ? trStatic("Hide password")
+                  : trStatic("Show password")
+              }
+              title={
+                showPassword
+                  ? trStatic("Hide password")
+                  : trStatic("Show password")
+              }
+              className="absolute inset-y-0 right-2 grid w-9 place-items-center text-[#6f8582]"
+              onClick={() => setShowPassword(value => !value)}
+            >
+              {showPassword ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
+            </button>
+          </div>
+          <p id="password-help" className="text-[11px] text-[#8b9a98]">
+            {trStatic("Password must be at least 8 characters.")}
+          </p>
           {error && (
             <p className="text-xs font-semibold text-[#b14b45]">{error}</p>
           )}
@@ -3505,6 +3561,7 @@ export default function App() {
   const [locale, setLocale] = useState<Locale>(
     () => (localStorage.getItem("studynivo-locale") as Locale) || "en"
   );
+  const saveLocale = trpc.auth.setLocale.useMutation();
   setActiveLocale(locale);
   const [location] = useLocation();
   const [workspace, setWorkspace] = useWorkspace(user?.openId);
@@ -3512,7 +3569,8 @@ export default function App() {
     localStorage.setItem("studynivo-locale", locale);
     document.documentElement.lang = locale;
     document.documentElement.dir = getDirection(locale);
-  }, [locale]);
+    if (user) void saveLocale.mutateAsync({ locale });
+  }, [locale, user]);
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.style.colorScheme = theme;

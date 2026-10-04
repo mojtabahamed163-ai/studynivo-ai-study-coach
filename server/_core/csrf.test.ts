@@ -35,6 +35,19 @@ describe("same-origin API mutation guard", () => {
     ).toBe(true);
   });
 
+  it("allows published requests when the proxy appends an internal host", () => {
+    expect(
+      isTrustedApiMutation({
+        method: "POST",
+        headers: {
+          host: "internal-webdev:3000",
+          "x-forwarded-host": `${host}, internal-webdev:3000`,
+          origin: `https://${host}`,
+        },
+      })
+    ).toBe(true);
+  });
+
   it("rejects a cross-site Origin even when Fetch Metadata is absent", () => {
     expect(
       isTrustedApiMutation({

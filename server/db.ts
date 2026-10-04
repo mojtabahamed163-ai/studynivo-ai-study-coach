@@ -99,6 +99,36 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     .onDuplicateKeyUpdate({ set: updateSet });
 }
 
+export async function getUserLocale(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .select({ locale: userProfiles.locale })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+  return rows[0]?.locale ?? "en";
+}
+
+export async function setUserLocale(userId: number, locale: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db
+    .select({ id: userProfiles.id })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+  if (existing[0]) {
+    await db
+      .update(userProfiles)
+      .set({ locale })
+      .where(eq(userProfiles.userId, userId));
+  } else {
+    await db.insert(userProfiles).values({ userId, locale });
+  }
+  return { locale };
+}
+
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;

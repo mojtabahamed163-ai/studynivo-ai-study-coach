@@ -52,8 +52,17 @@ const authAndLandingTranslations: Record<Locale, Record<string, string>> = {
   ar: {
     "Create account": "إنشاء حساب",
     "Create a new account": "إنشاء حساب جديد",
-    "Already have an account? Sign in": "لديك حساب بالفعل؟ تسجيل الدخول",
+    "Already have an account? Sign in": "لديك حساب بالفعل؟ سجّل الدخول",
     "Stop wondering what you should study.": "توقف عن التساؤل عما يجب دراسته.",
+    "Password (8+ characters)": "كلمة السر (8 أحرف أو أكثر)",
+    "Password must be at least 8 characters.": "يجب أن تتكون كلمة السر من 8 أحرف أو أرقام على الأقل.",
+    "Show password": "إظهار كلمة السر",
+    "Hide password": "إخفاء كلمة السر",
+    "The request was rejected. Refresh the page and try again.": "تم رفض الطلب. حدّث الصفحة ثم حاول مرة أخرى.",
+    "Enter a valid email address": "أدخل بريدًا إلكترونيًا صحيحًا.",
+    "Enter a valid phone number with country code": "أدخل رقم هاتف صحيحًا مع رمز الدولة.",
+    "The email/phone or password is incorrect.": "البريد الإلكتروني أو رقم الهاتف أو كلمة السر غير صحيحة.",
+    "Authentication failed. Try again.": "تعذّرت المصادقة. حاول مرة أخرى.",
   },
   es: {
     "Create account": "Crear cuenta",

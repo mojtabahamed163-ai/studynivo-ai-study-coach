@@ -15,6 +15,10 @@ function header(request: HeaderRequest, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function firstForwardedValue(value: string | undefined): string | undefined {
+  return value?.split(",", 1)[0]?.trim().toLowerCase();
+}
+
 /**
  * API requests that change state must be same-origin. This complements the
  * SameSite=None cookie required by embedded HTTPS previews; it does not rely on
@@ -29,9 +33,11 @@ export function isTrustedApiMutation(request: HeaderRequest): boolean {
   // Published Webdev requests arrive through a reverse proxy. Compare the
   // browser origin with the externally visible forwarded host when present;
   // fall back to the direct request host for local and direct deployments.
-  const host = (
+  // A reverse proxy may append its internal host to this header. The first
+  // value is the browser-visible host used for the same-origin comparison.
+  const host = firstForwardedValue(
     header(request, "x-forwarded-host") ?? header(request, "host")
-  )?.toLowerCase();
+  );
   const source = header(request, "origin") ?? header(request, "referer");
   if (!host || !source || source === "null") return false;
 
