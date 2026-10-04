@@ -26,7 +26,7 @@ describe("StudyNivo localization", () => {
   it("does not fall back to English for core navigation and dashboard copy", () => {
     const keys = [
       "Home", "Subjects", "Study plan", "Review me", "Progress",
-      "Saved items", "Language", "Sign out", "Today's goal",
+      "Saved items", "Language", "Sign out", "Today's goal", "Streak",
       "A realistic pace", "Study streak", "Consistency matters",
       "Overall progress", "Upcoming exams", "Dates shape priority",
       "today", "day study streak", "Continue where you paused",
