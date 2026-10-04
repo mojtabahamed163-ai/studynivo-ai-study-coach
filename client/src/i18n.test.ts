@@ -23,6 +23,25 @@ describe("StudyNivo localization", () => {
     expect(trStatic("Settings.", "ja")).not.toBe("Settings.");
   });
 
+  it("does not fall back to English for core navigation and dashboard copy", () => {
+    const keys = [
+      "Home", "Subjects", "Study plan", "Review me", "Progress",
+      "Saved items", "Language", "Sign out", "Today's goal",
+      "A realistic pace", "Study streak", "Consistency matters",
+      "Overall progress", "Upcoming exams", "Dates shape priority",
+      "today", "day study streak", "Continue where you paused",
+      "optional", "e.g. Physics", "Overall mastery", "Across your spaces",
+      "Study time", "Logged in sessions", "Current streak",
+      "Personal consistency", "Saved for review", "Your evidence bank",
+      "One focused question", "Low confidence matters",
+    ];
+    for (const locale of supportedLocales.filter(item => item.code !== "en")) {
+      for (const key of keys) {
+        expect(trStatic(key, locale.code), `${locale.code}: ${key}`).not.toBe(key);
+      }
+    }
+  });
+
   it("translates the landing-page feature copy in every supported locale", () => {
     const keys = ["Turn lectures, notes, images, and audio into topics, explanations, and source-linked summaries.", "Get questions that fit the subject — from definitions to calculations and open-ended reasoning.", "Separate subject spaces", "30 minutes"];
     for (const locale of supportedLocales) {

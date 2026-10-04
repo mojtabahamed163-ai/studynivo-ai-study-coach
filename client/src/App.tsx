@@ -402,7 +402,7 @@ function LocalePicker({
     <label className="flex items-center gap-2 text-xs font-semibold text-[#728187]">
       <Languages className="size-4" />
       <select
-        aria-label="Language"
+        aria-label={trStatic("Language")}
         className="border-0 bg-transparent text-xs font-bold outline-none"
         value={locale}
         onChange={event => onChange(event.target.value as Locale)}
@@ -772,7 +772,7 @@ function AppShell({
               </div>
             </div>
             <button
-              aria-label="Sign out"
+              aria-label={trStatic("Sign out")}
               className="text-[#9aa6a7] hover:text-[#0f766e]"
               onClick={() => void logout()}
             >
@@ -1081,7 +1081,7 @@ function Dashboard({
                   </span>
                 </div>
                 <div className="mt-1 text-xs font-semibold text-[#879497]">
-                  of {workspace.dailyGoal} min today
+                  {trStatic("of")} {workspace.dailyGoal} {trStatic("min")} {trStatic("today")}
                 </div>
               </div>
               <div className="text-right text-xs font-extrabold text-[#0f766e]">
@@ -1104,7 +1104,7 @@ function Dashboard({
             </div>
             <div className="mt-5 flex items-center justify-between text-xs">
               <span className="font-semibold text-[#829092]">
-                {workspace.streak} day study streak
+                {workspace.streak} {trStatic("day study streak")}
               </span>
               <span className="font-extrabold text-[#0f766e]">
                 {trStatic("Keep going")}
@@ -1116,27 +1116,27 @@ function Dashboard({
       <div className="grid-metrics mt-5">
         <Metric
           icon={<Target />}
-          label="Today's goal"
+          label={trStatic("Today's goal")}
           value={`${workspace.minutesToday}/${workspace.dailyGoal} min`}
-          note="A realistic pace"
+          note={trStatic("A realistic pace")}
         />
         <Metric
           icon={<Zap />}
-          label="Study streak"
+          label={trStatic("Study streak")}
           value={`${workspace.streak} ${trStatic("days")}`}
-          note="Consistency matters"
+          note={trStatic("Consistency matters")}
         />
         <Metric
           icon={<BarChart3 />}
-          label="Overall progress"
+          label={trStatic("Overall progress")}
           value={`${Math.round(workspace.subjects.reduce((sum, item) => sum + item.mastery, 0) / Math.max(1, workspace.subjects.length))}%`}
-          note={`${workspace.subjects.length} study spaces`}
+          note={`${workspace.subjects.length} ${trStatic("Study spaces")}`}
         />
         <Metric
           icon={<CalendarDays />}
-          label="Upcoming exams"
+          label={trStatic("Upcoming exams")}
           value={`${workspace.subjects.filter(item => item.examDate).length}`}
-          note="Dates shape priority"
+          note={trStatic("Dates shape priority")}
         />
       </div>
       {workspace.session && (
@@ -1155,7 +1155,7 @@ function Dashboard({
                     item => item.id === workspace.session?.subjectId
                   )?.name
                 }{" "}
-                · Continue where you paused
+                · {trStatic("Continue where you paused")}
               </div>
             </div>
           </div>
@@ -1381,7 +1381,7 @@ function Subjects({
                 <input
                   autoFocus
                   className="input mt-2"
-                  placeholder="e.g. Physics"
+                  placeholder={trStatic("e.g. Physics")}
                   value={name}
                   onChange={event => setName(event.target.value)}
                 />
@@ -1390,7 +1390,7 @@ function Subjects({
                 <span className="kicker">
                   {trStatic("Exam date")}
                   <span className="normal-case tracking-normal text-[#a3aeae]">
-                    (optional)
+                    ({trStatic("optional")})
                   </span>
                 </span>
                 <input
@@ -2592,27 +2592,27 @@ function ProgressView({ workspace }: { workspace: Workspace }) {
       <div className="grid-metrics mt-8">
         <Metric
           icon={<BarChart3 />}
-          label="Overall mastery"
+          label={trStatic("Overall mastery")}
           value={`${average}%`}
-          note="Across your spaces"
+          note={trStatic("Across your spaces")}
         />
         <Metric
           icon={<Timer />}
-          label="Study time"
+          label={trStatic("Study time")}
           value={`${workspace.subjects.reduce((sum, item) => sum + item.minutes, 0)} ${trStatic("min")}`}
-          note="Logged in sessions"
+          note={trStatic("Logged in sessions")}
         />
         <Metric
           icon={<Zap />}
-          label="Current streak"
+          label={trStatic("Current streak")}
           value={`${workspace.streak} ${trStatic("days")}`}
-          note="Personal consistency"
+          note={trStatic("Personal consistency")}
         />
         <Metric
           icon={<CircleCheck />}
-          label="Saved for review"
+          label={trStatic("Saved for review")}
           value={`${workspace.savedItems.length}`}
-          note="Your evidence bank"
+          note={trStatic("Your evidence bank")}
         />
       </div>
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_.8fr]">
@@ -3188,19 +3188,19 @@ function PracticeTest({
               icon={<Target />}
               label="Score"
               value={selected ? "100%" : "0%"}
-              note="One focused question"
+              note={trStatic("One focused question")}
             />
             <Metric
               icon={<Brain />}
-              label="Strong topic"
+              label={trStatic("Strong topic")}
               value={question.topic.name}
-              note="Keep it warm"
+              note={trStatic("Keep it warm")}
             />
             <Metric
               icon={<Lightbulb />}
-              label="Next step"
-              value="Review"
-              note="Low confidence matters"
+              label={trStatic("Next step")}
+              value={trStatic("Review")}
+              note={trStatic("Low confidence matters")}
             />
           </div>
           <div className="mt-6 rounded-2xl bg-[#f1f7f4] p-5 text-sm leading-7 text-[#53736b]">
