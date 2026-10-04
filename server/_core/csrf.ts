@@ -15,8 +15,11 @@ function header(request: HeaderRequest, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function firstForwardedValue(value: string | undefined): string | undefined {
-  return value?.split(",", 1)[0]?.trim().toLowerCase();
+function forwardedValues(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map(item => item.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 /**
@@ -27,19 +30,19 @@ function firstForwardedValue(value: string | undefined): string | undefined {
 export function isTrustedApiMutation(request: HeaderRequest): boolean {
   if (SAFE_METHODS.has(request.method.toUpperCase())) return true;
 
-  const fetchSite = header(request, "sec-fetch-site")?.toLowerCase();
-  if (fetchSite === "cross-site") return false;
-
   // Published Webdev requests arrive through a reverse proxy. Compare the
   // browser origin with the externally visible forwarded host when present;
   // fall back to the direct request host for local and direct deployments.
-  // A reverse proxy may append its internal host to this header. The first
-  // value is the browser-visible host used for the same-origin comparison.
-  const host = firstForwardedValue(
-    header(request, "x-forwarded-host") ?? header(request, "host")
-  );
+  // A Preview iframe may report Sec-Fetch-Site: cross-site even when the
+  // request Origin is the website's own public origin. Origin matching is the
+  // authoritative check; Fetch Metadata remains useful when no valid origin
+  // is supplied because the request is rejected below.
+  const hosts = [
+    ...forwardedValues(header(request, "x-forwarded-host")),
+    ...forwardedValues(header(request, "host")),
+  ];
   const source = header(request, "origin") ?? header(request, "referer");
-  if (!host || !source || source === "null") return false;
+  if (!hosts.length || !source || source === "null") return false;
 
   try {
     const sourceUrl = new URL(source);
@@ -50,7 +53,7 @@ export function isTrustedApiMutation(request: HeaderRequest): boolean {
     ) {
       return false;
     }
-    return sourceUrl.host.toLowerCase() === host;
+    return hosts.includes(sourceUrl.host.toLowerCase());
   } catch {
     return false;
   }

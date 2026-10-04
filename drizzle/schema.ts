@@ -263,7 +263,7 @@ export const quizAnswers = mysqlTable(
     attemptId: int("attemptId").notNull(),
     questionIndex: int("questionIndex").notNull(),
     answer: text("answer"),
-    confidence: mysqlEnum("answer_confidence", ["low", "medium", "high"]),
+    confidence: mysqlEnum("confidence", ["low", "medium", "high"]),
     isCorrect: boolean("isCorrect").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },

@@ -1483,6 +1483,14 @@ function SubjectSpace({
                 text: material.textContent ?? undefined,
                 duration: material.audioDurationSeconds ?? undefined,
               })),
+              topics: serverSubject.topics.map(topic => ({
+                id: String(topic.id),
+                name: topic.name,
+                mastery: topic.mastery,
+                note: topic.note || "",
+                source: topic.sourceRef || "Subject material",
+                weak: topic.isWeak,
+              })),
             }
           : item
       ),

@@ -57,13 +57,26 @@ describe("same-origin API mutation guard", () => {
     ).toBe(false);
   });
 
-  it("rejects cross-site Fetch Metadata and missing source headers", () => {
+  it("allows embedded Preview metadata when Origin is still same-origin", () => {
     expect(
       isTrustedApiMutation({
         method: "POST",
         headers: {
           host,
           origin: `https://${host}`,
+          "sec-fetch-site": "cross-site",
+        },
+      })
+    ).toBe(true);
+  });
+
+  it("rejects cross-site source and missing source headers", () => {
+    expect(
+      isTrustedApiMutation({
+        method: "POST",
+        headers: {
+          host,
+          origin: "https://attacker.example",
           "sec-fetch-site": "cross-site",
         },
       })
