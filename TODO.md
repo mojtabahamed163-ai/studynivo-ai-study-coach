@@ -1,31 +1,46 @@
-# StudyNivo — حالة التسليم للحساب الجديد
+# StudyNivo — الحالة والمهام للحساب الجديد
 
-## مكتمل في كود GitHub
+المرجع الكامل: `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md`.
 
-- [x] إصلاحات CSRF/Origin، إبطال الجلسات خادميًا، وتحديد معدل محاولات المصادقة.
-- [x] حماية إجابات ودرجات Full Mock أثناء الاختبار النشط، مع أسئلة مرتبطة بالمادة ومصادرها.
-- [x] المظهر الداكن والفاتح، وإعدادات RTL للعربية، وكتالوجات أساسية للغات الأربع عشرة.
-- [x] Study Manager aware of exam dates، وPractice/Full Mock محفوظان، وmigration chain حتى `0009_session_and_material_limits.sql`.
-- [x] CI ينجح على خط أساس كود التطبيق `b2b8bd2e8580f5d26cf76be1bd5a82330944eead`؛ راجع تشغيل CI الأحدث على `main` بعد هذا التحديث التوثيقي.
+## مكتمل في GitHub
 
-## تحقق في مشروع Preview المؤقت لهذه الجلسة
+- [x] React/Vite/TypeScript + Express/tRPC + Drizzle/MySQL.
+- [x] Server routes وownership checks وrate limiting وإبطال الجلسات.
+- [x] مصادقة البريد/الهاتف وكلمة مرور 8–128 حرفًا.
+- [x] إنشاء الحساب يسجل الدخول تلقائيًا بعد نجاح التسجيل.
+- [x] إصلاح CSRF/Origin خلف البروكسي.
+- [x] Subjects وMaterials ورفع PDF/DOCX/TXT/Markdown/صور/صوت.
+- [x] معالجة وفهرسة المواد وRetry وsource references.
+- [x] Analyze topics وAsk Material والبحث grounded.
+- [x] Flashcards محفوظة ومراجعة متباعدة.
+- [x] Practice وFull Mock محفوظان مع الإجابات والثقة والتقرير.
+- [x] Review Me وStudy Manager وStudy Sessions وProgress.
+- [x] 14 لغة وRTL للعربية وLight/Dark.
+- [x] migrations من `0000` إلى `0009`.
+- [x] route manifest وDockerfile و`.env.example` الآمن.
+- [x] آخر فحوص: 47 اختبارًا، TypeScript، build، وgit diff check.
 
-- [x] إنشاء قاعدة Manus جديدة وتطبيق migrations حتى `0009` في مشروع الجلسة المؤقتة.
-- [x] تسجيل حساب QA والدخول إليه، وإنشاء مادة QA وحفظها.
-- [x] معاينة المظهر الفاتح والداكن ودعم اتجاه RTL للعربية.
-- [ ] رفع ملف فعلي وانتظار فهرسته؛ لم يكتمل هذا المسار قبل إيقاف الجلسة.
-- [ ] تشغيل `Analyze topics` والتحقق من Topics ومراجع المصدر بخدمة AI فعلية.
-- [ ] إكمال Practice وFull Mock والإجابة، والتحقق من حفظ التقرير واستعادته وعدم تسريب الإجابات/الدرجة قبل اكتماله.
+## مطلوب عند إنشاء حساب Manus جديد
 
-## الخطوات التالية للحساب الجديد — لا تعتبرها مكتملة
+- [ ] استيراد `main` من GitHub إلى مشروع WebDev جديد.
+- [ ] تفعيل Server وDatabase وManus AI/Storage، وSpeech عند الحاجة.
+- [ ] إنشاء `STUDYNIVO_SESSION_SECRET` جديد عبر Secrets.
+- [ ] تثبيت الاعتماديات وتشغيل migrations والفحوص.
+- [ ] تشغيل E2E كامل بقاعدة وحساب QA جديدين.
+- [ ] حفظ checkpoint جديد ونشر المشروع الجديد فقط.
+- [ ] تحديث `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md` بالرابط الجديد وحالة النشر.
 
-- [ ] إنشاء مشروع Manus WebDev جديد من GitHub `main`؛ لا تحاول ربط Resource URI لمشروع الحساب القديم ولا تعتمد على مشروع Preview المؤقت.
-- [ ] تفعيل Server وDatabase وManus AI/Storage، وضبط `STUDYNIVO_SESSION_SECRET` جديدًا عبر الإعداد الآمن؛ قاعدة الحساب الجديد مستقلة وفارغة.
-- [ ] تشغيل `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm test --run`, `pnpm build`, ثم `pnpm db:migrate` بعد تهيئة قاعدة جديدة.
-- [x] تدقيق النصوص الأساسية الظاهرة في الواجهة وإكمال ترجمة التنقل ولوحة التحكم والتقدم والاختبارات لكل اللغات الأربع عشرة؛ أضيف اختبار يمنع fallback الصامت إلى الإنجليزية في هذه المسارات.
-- [x] فحص بصري للواجهة الرئيسية باللغات الـ14 في المظهرين الفاتح والداكن، مع فحص RTL وعدم وجود تجاوز أفقي أو نصوص إنجليزية غير مقصودة.
-- [ ] استكمال تدقيق النصوص الثانوية في مكونات العرض التجريبي ومكونات shadcn غير المستخدمة في مسارات StudyNivo.
-- [ ] اختبار E2E: تسجيل الدخول → إنشاء Subject → رفع TXT → فهرسة → Analyze topics → توليد اختبار مصدرّي → إجابة → إعادة تحميل التقرير.
-- [ ] التحقق من أن Full Mock لا يكشف صحة الإجابة أو شرحها أو الدرجة أثناء المحاولة النشطة، ومن أن الملكية والجلسات تعملان على قاعدة جديدة.
-- [ ] بعد نجاح CI والفحوص وE2E، تحديث وثائق handoff ودفع التغييرات إلى `main` دون force-push.
-- [ ] حفظ checkpoint ونشر مشروع الحساب الجديد فقط، والتحقق من رابطه الجديد. لا تغيّر أو تعد بتحديث الرابط القديم `studynivo2-j4dgwvrg.manus.space`.
+## تحسينات لاحقة اختيارية
+
+- [ ] تحسين retrieval الدلالي والفهرسة المنفصلة.
+- [ ] تحسين توليد البطاقات مباشرة من chunks.
+- [ ] إضافة اختبارات تكامل آلية لمسار التسجيل والرفع والاختبارات.
+- [ ] تقييم أوزان Study Manager على بيانات فعلية.
+- [ ] حفظ locale دائمًا في `userProfiles` وتقليل الاعتماد على localStorage.
+- [ ] تدقيق النصوص الثانوية في مكونات UI غير المستخدمة في المسارات الأساسية.
+
+## قواعد
+
+- لا تضع أسرارًا أو `.env` أو `DATABASE_URL` في GitHub.
+- لا تستخدم force-push ولا تحذف migrations.
+- بعد كل تعديل: `pnpm check && pnpm test --run && pnpm build && git diff --check`.

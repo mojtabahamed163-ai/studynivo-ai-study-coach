@@ -4,7 +4,7 @@ React / Express / tRPC / Drizzle starter, adapted from the Sandbox web-db-user t
 
 ## Handoff and continuation
 
-Read [`MANUS_SETUP.md`](MANUS_SETUP.md) first when importing this repository into another Manus account. Then read [`docs/PROJECT_HANDOFF.md`](docs/PROJECT_HANDOFF.md); it records what is complete, what is intentionally unfinished, failed publication attempts, validation evidence, checkpoints, and the recommended next implementation phase. The original product specification is [`docs/برومبت.txt`](docs/برومبت.txt), and the implementation/design plan is [`docs/PLAN.md`](docs/PLAN.md).
+Read [`docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md`](docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md) first when importing this repository into another Manus account. Then read [`MANUS_SETUP.md`](MANUS_SETUP.md) and [`docs/NEW_MANUS_ACCOUNT_CHECKLIST.md`](docs/NEW_MANUS_ACCOUNT_CHECKLIST.md). [`docs/PROJECT_HANDOFF.md`](docs/PROJECT_HANDOFF.md) contains the deeper technical history. The original product specification is [`docs/برومبت.txt`](docs/برومبت.txt), and the implementation/design plan is [`docs/PLAN.md`](docs/PLAN.md).
 
 - `pnpm dev`: development server; honors `PORT` (default 3000).
 - `pnpm build` / `pnpm start`: build and serve `dist/index.js` and `dist/public/`.

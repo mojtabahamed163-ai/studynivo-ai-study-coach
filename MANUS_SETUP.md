@@ -1,26 +1,31 @@
-# StudyNivo — دليل إعداد حساب Manus جديد
+# StudyNivo — إعداد حساب Manus جديد
 
-اقرأ أولًا `docs/HANDOFF_FOR_NEW_MANUS_ACCOUNT.md` ثم `docs/PROMPT_FOR_NEW_MANUS_ACCOUNT.md` و`docs/NEW_MANUS_ACCOUNT_CHECKLIST.md`.
+> **ابدأ بقراءة:** `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md` ثم `docs/NEW_MANUS_ACCOUNT_CHECKLIST.md`.
 
-## 1. الاستيراد
+## المستودع
 
-استورد المستودع الخاص:
+```text
+https://github.com/mojtabahamed163-ai/studynivo-ai-study-coach
+```
 
-`https://github.com/mojtabahamed163-ai/studynivo-ai-study-coach`
+استخدم الفرع `main` وآخر HEAD. أنشئ مشروع WebDev جديدًا من GitHub؛ لا تربط Resource URI قديمًا ولا تنشئ قالبًا فارغًا.
 
-من الفرع `main` إلى **مشروع WebDev جديد** في حساب Manus الجديد. لا تربط Resource URI لمشروع قديم، ولا تنشئ قالبًا فارغًا. GitHub ينقل الشيفرة والوثائق فقط، لا قاعدة البيانات أو الأسرار.
+## الخدمات المطلوبة
 
-اختر Web / Server-enabled، فعّل Server وDatabase، واضبط runtime على المنفذ 3000 إذا طلبت المنصة ذلك. أبقِ النشر التلقائي مغلقًا حتى نجاح الفحوص وE2E.
+فعّل في مشروع الحساب الجديد:
 
-## 2. الخدمات والأسرار
+- Web / Server-enabled
+- Server
+- Database
+- Manus Service API / AI
+- Storage
+- Speech فقط عند اختبار الملفات الصوتية
 
-فعّل Manus Database وManus Service API/AI وStorage. فعّل Speech عند اختبار الصوت فقط. اضبط `STUDYNIVO_SESSION_SECRET` جديدًا عشوائيًا لا يقل عن 32 حرفًا عبر آلية Secrets. لا تنسخ `DATABASE_URL` أو مفاتيح Manus من أي مشروع آخر.
+أنشئ Secret جديدًا باسم `STUDYNIVO_SESSION_SECRET`، عشوائيًا وبطول 32 حرفًا أو أكثر. لا تنسخ أي Secret أو `DATABASE_URL` من حساب آخر، ولا تضعها في GitHub.
 
-المتغيرات المدارة الأساسية: `DATABASE_URL`, `STUDYNIVO_SESSION_SECRET`, `MANUS_API_URL`, `MANUS_API_KEY`, `MANUS_PROJECT_ID`, و`PORT`.
+## التشغيل
 
-## 3. التثبيت والترحيلات والتشغيل
-
-من جذر المشروع:
+من جذر المستودع:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -31,24 +36,32 @@ pnpm db:migrate
 pnpm dev
 ```
 
-شغّل الخادم من Terminal/جلسة WebDev المرتبطة حتى تُحمّل متغيرات Manus. إذا ظهر `Database is not available`، أعد تشغيل الخادم من الجلسة الصحيحة؛ لا تغيّر الكود لإخفاء المشكلة.
+شغّل `pnpm dev` من Terminal المرتبط بمشروع WebDev حتى تُحقن متغيرات Manus. إذا ظهر `Database is not available`، أعد تشغيل الخادم من الجلسة المرتبطة بدل تعديل الكود.
 
-تحقق:
+## التحقق
 
 ```bash
 curl -fsS http://127.0.0.1:3000/api/health
 curl -fsS http://127.0.0.1:3000/manus-routes.json
 ```
 
-## 4. الإصلاحات التي يجب الحفاظ عليها
+المتوقع:
 
-- `server/_core/csrf.ts`: يستخدم `X-Forwarded-Host` خلف البروكسي؛ لا تعطل same-origin protection.
-- `server/ai/quizGeneration.ts`: يستخدم `Text section N` كمصدر للاختبار حتى يطابق Topics.
-- `drizzle/schema.ts`: `quiz_attempts.status` يطابق عمود migration الحالي `status`.
-- `client/public/manus-routes.json`: يجب أن يبقى متزامنًا مع المسارات.
+```json
+{"status":"ok"}
+```
 
-## 5. الاختبار والنشر
+وJSON routes صالح، وليس HTML fallback.
 
-نفّذ E2E الكامل الموجود في `docs/NEW_MANUS_ACCOUNT_CHECKLIST.md`. ركّز على حفظ Full Mock وإعادة تحميل التقرير ومنع تسريب الإجابات قبل الإكمال. دقّق نصوص اللغات الـ14؛ في آخر فحص بقيت بعض تسميات Dashboard/Materials بالإنجليزية داخل العربية.
+## إصلاحات لا يجوز حذفها
 
-بعد نجاح check/test/build وE2E فقط: احفظ checkpoint في مشروع الحساب الجديد، انشره، اختبر الرابط الجديد، وسجله في handoff. لا تنشر إلى الموقع القديم.
+- `server/_core/csrf.ts`: يقارن Origin مع `X-Forwarded-Host` خلف البروكسي.
+- `server/_core/customAuth.ts`: جلسات موقعة، كلمة مرور 8–128، rate limiting وإبطال الجلسات.
+- `client/src/App.tsx`: إنشاء الحساب يسجل الدخول تلقائيًا بعد نجاح الإنشاء.
+- `server/ai/quizGeneration.ts`: مراجع الأسئلة تطابق `Text section N`.
+- `drizzle/schema.ts`: عمود `quiz_attempts.status` مطابق للـmigration.
+- `client/public/manus-routes.json`: حدّثه عند إضافة أي مسار.
+
+## قبل النشر
+
+نفّذ قائمة E2E في `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md`، خصوصًا إنشاء الحساب، رفع TXT/PDF، الفهرسة، AI، Practice، Full Mock، reload، ownership، والعربية RTL. بعد نجاحها فقط احفظ checkpoint وانشر مشروع الحساب الجديد، ثم سجّل الرابط الجديد في وثيقة الانتقال.
