@@ -2939,6 +2939,26 @@ function Settings({
             </a>
           </div>
         </div>
+        <div className="card p-6">
+          <div className="flex items-start gap-4">
+            <div className="grid size-10 place-items-center rounded-xl bg-[#eaf4f1] text-[#0f766e]">
+              <Mail className="size-5" />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-extrabold">{trStatic("StudyNivo support")}</div>
+              <div className="mt-1 text-xs leading-5 text-[#879497]">
+                {trStatic("Report a problem, share a suggestion, or ask for help by email.")}
+              </div>
+              <a
+                className="btn-light mt-4 inline-flex"
+                href="mailto:studynivo@outlook.com?subject=StudyNivo%20support"
+              >
+                studynivo@outlook.com
+                <ArrowRight className="size-4" />
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
@@ -3394,6 +3414,15 @@ function AuthGate({
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(true);
+  const [authView, setAuthView] = useState<"credentials" | "request" | "confirm">(
+    () => (new URLSearchParams(window.location.search).get("reset") ? "confirm" : "credentials")
+  );
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetToken] = useState(
+    () => new URLSearchParams(window.location.search).get("reset") || ""
+  );
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState("");
   const authError = (message: string) => {
     const messages: Record<string, string> = {
       "Cross-origin request rejected": trStatic(
@@ -3415,9 +3444,62 @@ function AuthGate({
       "This phone number is already registered. Sign in or use password recovery.": trStatic(
         "This phone number is already registered. Sign in or use password recovery."
       ),
+      "Invalid or expired reset link": trStatic("This reset link is invalid or has expired."),
+      "Could not reset password": trStatic("Could not reset password. Try again."),
       "Authentication failed": trStatic("Authentication failed. Try again."),
     };
     return messages[message] ?? message;
+  };
+  const requestPasswordReset = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth/password-reset/request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Authentication failed");
+      setNotice(
+        trStatic("If an account exists for that email, a reset link has been sent.")
+      );
+    } catch (cause) {
+      setError(authError(cause instanceof Error ? cause.message : "Authentication failed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const confirmPasswordReset = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setNotice("");
+    if (resetPassword.length < 8 || resetPassword !== resetPasswordConfirm) {
+      setError(trStatic("Passwords must match and be at least 8 characters."));
+      setBusy(false);
+      return;
+    }
+    try {
+      const response = await fetch("/api/auth/password-reset/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: resetToken, password: resetPassword }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not reset password");
+      setAuthView("credentials");
+      setMode("login");
+      setPassword("");
+      setNotice(trStatic("Password changed. You can sign in now."));
+      window.history.replaceState({}, "", "/login");
+    } catch (cause) {
+      setError(authError(cause instanceof Error ? cause.message : "Could not reset password"));
+    } finally {
+      setBusy(false);
+    }
   };
   const submitCredentials = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -3478,6 +3560,7 @@ function AuthGate({
             "Sign in with your email or phone number to access your study space."
           )}
         </p>
+        {authView === "credentials" && (
         <div className="mt-7 grid grid-cols-2 gap-2 rounded-xl bg-[#f1f6f3] p-1">
           <button
             type="button"
@@ -3504,6 +3587,8 @@ function AuthGate({
             {trStatic("Phone")}
           </button>
         </div>
+        )}
+        {authView === "credentials" ? (
         <form
           className="mt-4 grid gap-2.5 text-left"
           onSubmit={submitCredentials}
@@ -3592,8 +3677,73 @@ function AuthGate({
               <Phone className="size-4" />
             )}
           </button>
+          {mode === "login" && method === "email" && (
+            <button
+              type="button"
+              className="text-xs font-bold text-[#0f766e]"
+              onClick={() => {
+                setAuthView("request");
+                setResetEmail(identifier);
+                setError("");
+                setNotice("");
+              }}
+            >
+              {trStatic("Forgot password?")}
+            </button>
+          )}
         </form>
-        <button
+        ) : authView === "request" ? (
+          <form className="mt-4 grid gap-2.5 text-left" onSubmit={requestPasswordReset}>
+            <p className="text-sm leading-6 text-[#77868a]">
+              {trStatic("Enter your email and we will send a secure reset link if an account exists.")}
+            </p>
+            <input
+              required
+              type="email"
+              className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
+              placeholder={trStatic("Email address")}
+              value={resetEmail}
+              onChange={event => setResetEmail(event.target.value)}
+            />
+            {error && <p className="text-xs font-semibold text-[#b14b45]">{error}</p>}
+            {notice && <p role="status" className="text-xs font-semibold text-[#0f766e]">{notice}</p>}
+            <button disabled={busy} className="btn-primary w-full disabled:opacity-60" type="submit">
+              {busy ? trStatic("Please wait...") : trStatic("Send reset link")}
+              <Mail className="size-4" />
+            </button>
+          </form>
+        ) : (
+          <form className="mt-4 grid gap-2.5 text-left" onSubmit={confirmPasswordReset}>
+            <p className="text-sm leading-6 text-[#77868a]">{trStatic("Create a new password for your account.")}</p>
+            <input
+              required
+              minLength={8}
+              maxLength={128}
+              type="password"
+              className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
+              placeholder={trStatic("New password (8+ characters)")}
+              value={resetPassword}
+              onChange={event => setResetPassword(event.target.value)}
+            />
+            <input
+              required
+              minLength={8}
+              maxLength={128}
+              type="password"
+              className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
+              placeholder={trStatic("Confirm new password")}
+              value={resetPasswordConfirm}
+              onChange={event => setResetPasswordConfirm(event.target.value)}
+            />
+            {error && <p className="text-xs font-semibold text-[#b14b45]">{error}</p>}
+            {notice && <p role="status" className="text-xs font-semibold text-[#0f766e]">{notice}</p>}
+            <button disabled={busy} className="btn-primary w-full disabled:opacity-60" type="submit">
+              {busy ? trStatic("Please wait...") : trStatic("Save new password")}
+              <Check className="size-4" />
+            </button>
+          </form>
+        )}
+        {authView === "credentials" ? <button
           className="mt-4 text-xs font-bold text-[#0f766e]"
           onClick={() => {
             setMode(mode === "login" ? "register" : "login");
@@ -3603,11 +3753,28 @@ function AuthGate({
           {mode === "login"
             ? trStatic("Create a new account")
             : trStatic("Already have an account? Sign in")}
-        </button>
+        </button> : (
+          <button
+            className="mt-4 text-xs font-bold text-[#0f766e]"
+            onClick={() => {
+              setAuthView("credentials");
+              setError("");
+              setNotice("");
+            }}
+          >
+            {trStatic("Back to sign in")}
+          </button>
+        )}
         <p className="mt-4 text-[11px] leading-5 text-[#9aa5a5]">
           {trStatic(
             "Your name, login identifier, and study data are saved securely in the database."
           )}
+        </p>
+        <p className="mt-4 text-xs text-[#879497]">
+          {trStatic("Need help?")} {" "}
+          <a className="font-bold text-[#0f766e]" href="mailto:studynivo@outlook.com?subject=StudyNivo%20support">
+            studynivo@outlook.com
+          </a>
         </p>
       </div>
     </div>
