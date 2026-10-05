@@ -168,7 +168,7 @@ const appearanceTranslations: Partial<Record<Locale, Record<string, string>>> = 
     "Light appearance": "المظهر الفاتح",
     "Dark appearance": "المظهر الداكن",
     "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue.":
-      "إذا كان لديك حساب بهذا المعرّف فسجّل الدخول؛ وإلا فحسابك جاهز. سجّل الدخول للمتابعة.",
+      "هذا البريد الإلكتروني أو رقم الهاتف مرتبط بحساب موجود. سجّل الدخول باستخدام كلمة المرور السابقة للمتابعة.",
   },
   es: {
     Appearance: "Apariencia",

@@ -207,9 +207,11 @@ export async function registerCustomAuthRoutes(app: Express) {
           }
           clearAuthFailures(ip, method, normalized);
         }
-        // Return the same response for a new and an existing identifier, so
-        // registration cannot be used as an account-enumeration endpoint.
-        return res.json({ success: true, requiresSignIn: true });
+        const createdUser = await findUser(db, method, normalized);
+        if (!createdUser)
+          return res.status(500).json({ error: "Could not create account" });
+        await signIn(res, createdUser);
+        return res.json({ success: true });
       } else {
         if (
           !user?.passwordHash ||
