@@ -185,8 +185,13 @@ export async function registerCustomAuthRoutes(app: Express) {
         if (typeof name !== "string" || !name.trim() || name.trim().length > 120)
           return res.status(400).json({ error: "Enter your name" });
         if (user) {
-          recordAuthFailure(ip, method, normalized);
-          return res.json({ success: true, requiresSignIn: true });
+          return res.status(409).json({
+            error:
+              method === "email"
+                ? "This email is already registered. Sign in or use password recovery."
+                : "This phone number is already registered. Sign in or use password recovery.",
+            code: "IDENTIFIER_ALREADY_REGISTERED",
+          });
         }
         {
           try {
@@ -202,8 +207,13 @@ export async function registerCustomAuthRoutes(app: Express) {
           } catch (error) {
             const code = (error as { code?: string })?.code;
             if (code !== "ER_DUP_ENTRY") throw error;
-            recordAuthFailure(ip, method, normalized);
-            return res.json({ success: true, requiresSignIn: true });
+            return res.status(409).json({
+              error:
+                method === "email"
+                  ? "This email is already registered. Sign in or use password recovery."
+                  : "This phone number is already registered. Sign in or use password recovery.",
+              code: "IDENTIFIER_ALREADY_REGISTERED",
+            });
           }
           clearAuthFailures(ip, method, normalized);
         }

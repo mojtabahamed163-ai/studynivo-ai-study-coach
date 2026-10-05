@@ -21,10 +21,16 @@ export const supportedLocales: Array<{ code: Locale; label: string; dir: "ltr" |
 
 export type TranslationKey = keyof typeof generatedCatalogs.en;
 export const dictionary = generatedCatalogs;
-let activeLocale: Locale = "en";
+const storedLocale = typeof window !== "undefined" ? window.localStorage.getItem("studynivo-locale") : null;
+let activeLocale: Locale = supportedLocales.some(item => item.code === storedLocale)
+  ? (storedLocale as Locale)
+  : "en";
 
 const supplementalTranslations: Partial<Record<Locale, Record<string, string>>> = {
   ar: {
+    "Switch to dark mode": "التبديل إلى الوضع الداكن", "Switch to light mode": "التبديل إلى الوضع الفاتح", "Light mode": "الوضع الفاتح", "Dark mode": "الوضع الداكن",
+    "This email is already registered. Sign in or use password recovery.": "هذا البريد الإلكتروني مسجل من قبل. سجّل الدخول أو استخدم استعادة كلمة المرور.",
+    "This phone number is already registered. Sign in or use password recovery.": "رقم الهاتف هذا مسجل من قبل. سجّل الدخول أو استخدم استعادة كلمة المرور.",
     "30 minutes": "30 دقيقة", "6 days": "6 أيام", "2 tasks": "مهمتان", min: "دقيقة", days: "أيام", "min studied": "دقيقة دراسة", "weak topics": "مواضيع ضعيفة",
     Understand: "افهم", "Turn lectures, notes, images, and audio into topics, explanations, and source-linked summaries.": "حوّل المحاضرات والملاحظات والصور والصوت إلى مواضيع وشروحات وملخصات مرتبطة بالمصادر.", Practice: "مارس", "Get questions that fit the subject — from definitions to calculations and open-ended reasoning.": "احصل على أسئلة تناسب المادة، من التعريفات والحسابات إلى التفكير المفتوح.", "Know what is next": "اعرف خطوتك التالية", "Study Manager weighs exams, weak areas, confidence, and time to choose the next useful session.": "يوازن مدير الدراسة بين الامتحانات ونقاط الضعف والثقة والوقت لاختيار الجلسة التالية المفيدة.", "Separate subject spaces": "مساحات منفصلة لكل مادة", "Save what matters": "احفظ ما يهمك", "Sessions that resume": "جلسات قابلة للاستئناف", "Private by design": "الخصوصية أساس التصميم", Overview: "نظرة عامة", Materials: "المواد", Topics: "الموضوعات", Study: "الدراسة", Flashcards: "البطاقات التعليمية", "Ask material": "اسأل عن مادتي", Progress: "التقدم", mastery: "الإتقان", overall: "إجمالًا", "Source index": "فهرس المصادر", Processing: "قيد المعالجة", Indexed: "مفهرس", "Search your material": "ابحث في مادتي", "Find the exact passage": "اعثر على المقطع المطلوب", Search: "بحث", Low: "منخفض", Medium: "متوسط", High: "مرتفع", Page: "صفحة", Score: "النتيجة", "One focused question": "سؤال واحد مركز", "Strong topic": "موضوع قوي", "Keep it warm": "حافظ على مستواه", "Next step": "الخطوة التالية", "Review mistakes": "راجع الأخطاء", Confidence: "الثقة", Easy: "سهل", Good: "جيد", "Need review": "يحتاج مراجعة",
   },
@@ -423,9 +429,23 @@ export function getDirection(locale: Locale) {
 
 export function formatExamText(date: string | undefined, locale: Locale = activeLocale) {
   if (!date) return trStatic("No exam date", locale);
-  const days = Math.max(0, Math.ceil((new Date(date).getTime() - Date.now()) / 86400000));
+  const [year, month, day] = date.slice(0, 10).split("-").map(Number);
+  const examDay = new Date(year, month - 1, day);
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const startOfExam = examDay.getTime();
+  const days = Math.max(0, Math.round((startOfExam - startOfToday) / 86400000));
   if (days === 0) return trStatic("Exam today", locale);
   return new Intl.RelativeTimeFormat(locale, { numeric: "always" }).format(days, "day");
+}
+
+export function formatToday(locale: Locale = activeLocale) {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }).format(new Date());
 }
 
 export function formatNumber(value: number, locale: Locale = activeLocale) {

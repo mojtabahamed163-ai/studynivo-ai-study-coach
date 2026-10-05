@@ -57,6 +57,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .nav-item:hover { background: #f0f5f2; color: #0f766e; transform: translateX(2px); }
 .nav-item.active { background: #e8f4f1; color: #0f766e; }
 .content-wrap { width: min(1180px, 100%); margin: 0 auto; padding: 36px 42px 110px; }
+.global-controls { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-height: 34px; margin: -18px 0 18px; }
+.theme-toggle { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 10px; border: 1px solid #dce6e1; border-radius: 10px; background: #fff; color: #48605f; font-size: 11px; font-weight: 750; transition: background .18s ease, border-color .18s ease, color .18s ease; }
+.theme-toggle:hover { background: #eef6f3; border-color: #b9d4ca; color: #0f766e; }
 .eyebrow { color: #0f766e; font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .page-title { margin: 6px 0 0; color: #15232d; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.08; letter-spacing: -.04em; font-weight: 750; }
 .page-subtitle { margin: 10px 0 0; color: #718087; font-size: 14px; line-height: 1.7; max-width: 640px; }
@@ -123,7 +126,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 760px) {
   .app-sidebar { display: none; }
   .app-main { margin-left: 0; }
+  [dir="rtl"] .app-main { margin-right: 0; }
   .content-wrap { padding: 24px 16px 92px; }
+  .global-controls { justify-content: space-between; margin: -8px 0 14px; }
   .grid-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-subjects { grid-template-columns: 1fr; }
   .mobile-nav { position: fixed; display: grid; grid-template-columns: repeat(5, 1fr); inset: auto 10px 10px; z-index: 60; padding: 8px 6px; border: 1px solid #dfe9e4; border-radius: 18px; background: rgba(255,255,255,.93); box-shadow: 0 12px 30px rgba(22,56,52,.13); backdrop-filter: blur(14px); }
@@ -202,6 +207,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .dark .btn-light:hover { background: #22332f; }
 .dark .btn-quiet { color: #75cabc; }
 .dark .btn-quiet:hover { background: #1d3934; }
+.dark .theme-toggle { background: #192724; border-color: var(--border); color: #c0cfca; }
+.dark .theme-toggle:hover { background: #22332f; color: #78d0c2; }
 .dark .topic-chip,
 .dark .source-pill,
 .dark .tab {

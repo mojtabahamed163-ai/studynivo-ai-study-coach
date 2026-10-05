@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
   formatExamText,
+  formatToday,
   getDirection,
   setActiveLocale,
   supportedLocales,
@@ -56,7 +57,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 
 type Topic = {
@@ -419,12 +420,38 @@ function LocalePicker({
   );
 }
 
+function ThemeToggle({
+  theme,
+  onTheme,
+}: {
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
+}) {
+  const nextTheme = theme === "dark" ? "light" : "dark";
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      aria-label={trStatic(nextTheme === "dark" ? "Switch to dark mode" : "Switch to light mode")}
+      title={trStatic(nextTheme === "dark" ? "Switch to dark mode" : "Switch to light mode")}
+      onClick={() => onTheme(nextTheme)}
+    >
+      {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      <span>{trStatic(theme === "dark" ? "Light mode" : "Dark mode")}</span>
+    </button>
+  );
+}
+
 function Landing({
   onLocale,
   locale,
+  theme,
+  onTheme,
 }: {
   onLocale: (locale: Locale) => void;
   locale: Locale;
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
 }) {
   const login = () => {
     window.location.href = "/login";
@@ -440,6 +467,7 @@ function Landing({
         </div>
         <div className="flex items-center gap-3">
           <LocalePicker locale={locale} onChange={onLocale} />
+          <ThemeToggle theme={theme} onTheme={onTheme} />
           <button className="btn-light hidden sm:inline-flex" onClick={login}>
             {trStatic("Sign in")}
           </button>
@@ -484,7 +512,7 @@ function Landing({
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[10px] font-extrabold uppercase tracking-[.16em] text-[#849296]">
-                    {trStatic("Tuesday · Oct 1")}
+                    {formatToday(locale)}
                   </div>
                   <div className="mt-2 text-[21px] font-extrabold tracking-[-.04em]">
                     {trStatic("Your next best study step")}
@@ -784,6 +812,10 @@ function AppShell({
       </aside>
       <main className="app-main">
         <div className="content-wrap">
+          <div className="global-controls">
+            <LocalePicker locale={locale} onChange={onLocale} />
+            <ThemeToggle theme={theme} onTheme={onTheme} />
+          </div>
           {!isKnownLocation ? (
             <NotFoundView onNavigate={setLocation} />
           ) : sessionMatch ? (
@@ -816,6 +848,7 @@ function AppShell({
               setWorkspace={setWorkspace}
               userId={user?.id}
               onNavigate={setLocation}
+              locale={locale}
             />
           ) : currentView === "subjects" ? (
             <Subjects
@@ -868,11 +901,13 @@ function Dashboard({
   setWorkspace,
   userId,
   onNavigate,
+  locale,
 }: {
   workspace: Workspace;
   setWorkspace: React.Dispatch<React.SetStateAction<Workspace>>;
   userId?: number;
   onNavigate: (path: string) => void;
+  locale: Locale;
 }) {
   const hour = new Date().getHours();
   const greeting =
@@ -961,7 +996,7 @@ function Dashboard({
     <>
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
-          <div className="eyebrow">{trStatic("Tuesday · October 1")}</div>
+          <div className="eyebrow">{formatToday(locale)}</div>
           <h1 className="page-title">{greeting}, student.</h1>
           <p className="page-subtitle">
             {trStatic(
@@ -3343,7 +3378,13 @@ function NotFoundView({ onNavigate }: { onNavigate: (path: string) => void }) {
   );
 }
 
-function AuthGate() {
+function AuthGate({
+  theme,
+  onTheme,
+}: {
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
+}) {
   const [method, setMethod] = useState<"email" | "phone">("email");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -3367,6 +3408,12 @@ function AuthGate() {
       ),
       "Invalid email/phone or password": trStatic(
         "The email/phone or password is incorrect."
+      ),
+      "This email is already registered. Sign in or use password recovery.": trStatic(
+        "This email is already registered. Sign in or use password recovery."
+      ),
+      "This phone number is already registered. Sign in or use password recovery.": trStatic(
+        "This phone number is already registered. Sign in or use password recovery."
       ),
       "Authentication failed": trStatic("Authentication failed. Try again."),
     };
@@ -3414,6 +3461,9 @@ function AuthGate() {
   return (
     <div className="landing-shell grid min-h-screen place-items-center">
       <div className="auth-card card text-center">
+        <div className="mb-4 flex justify-end">
+          <ThemeToggle theme={theme} onTheme={onTheme} />
+        </div>
         <div className="mx-auto w-fit">
           <Logo />
         </div>
@@ -3575,13 +3625,14 @@ export default function App() {
   setActiveLocale(locale);
   const [location] = useLocation();
   const [workspace, setWorkspace] = useWorkspace(user?.openId);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    setActiveLocale(locale);
     localStorage.setItem("studynivo-locale", locale);
     document.documentElement.lang = locale;
     document.documentElement.dir = getDirection(locale);
     if (user) void saveLocale.mutateAsync({ locale });
   }, [locale, user]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.style.colorScheme = theme;
     localStorage.setItem("studynivo-theme", theme);
@@ -3600,10 +3651,20 @@ export default function App() {
       </div>
     );
   if (!user && location === "/")
-    return <Landing locale={locale} onLocale={setLocale} />;
-  if (!user) return <AuthGate />;
+    return (
+      <Landing
+        key={locale}
+        locale={locale}
+        onLocale={setLocale}
+        theme={theme}
+        onTheme={setTheme}
+      />
+    );
+  if (!user)
+    return <AuthGate key={locale} theme={theme} onTheme={setTheme} />;
   return (
     <AppShell
+      key={locale}
       locale={locale}
       onLocale={setLocale}
       workspace={workspace}
