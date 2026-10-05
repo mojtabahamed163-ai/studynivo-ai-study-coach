@@ -3391,13 +3391,15 @@ function AuthGate() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Authentication failed");
       if (body.requiresSignIn) {
-        setMode("login");
-        setPassword("");
-        setNotice(
-          trStatic(
-            "If an account already exists with that identifier, sign in; otherwise your account is ready. Please sign in to continue."
-          )
-        );
+        const signInResponse = await fetch("/api/auth/credentials", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ method, identifier, password, name, mode: "login" }),
+        });
+        const signInBody = await signInResponse.json();
+        if (!signInResponse.ok)
+          throw new Error(signInBody.error || "Authentication failed");
+        window.location.href = "/";
         return;
       }
       window.location.href = "/";
