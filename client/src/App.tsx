@@ -367,7 +367,10 @@ function useWorkspace(userId?: string, locale: Locale = "en") {
   useEffect(() => {
     if (loadedKey === key) localStorage.setItem(key, JSON.stringify(workspace));
   }, [key, loadedKey, workspace]);
-  const workspaceError = subjectsQuery.error || savedItemsQuery.error || activeSessionQuery.error;
+  const workspaceError =
+    (subjectsQuery.isError && subjectsQuery.data === undefined && subjectsQuery.error) ||
+    (savedItemsQuery.isError && savedItemsQuery.data === undefined && savedItemsQuery.error) ||
+    (activeSessionQuery.isError && activeSessionQuery.data === undefined && activeSessionQuery.error);
   const retryWorkspace = () => {
     void Promise.all([
       subjectsQuery.refetch(),
