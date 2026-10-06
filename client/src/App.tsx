@@ -1935,7 +1935,10 @@ function SubjectSpace({
               </button>
             </div>
             {chatAnswer && (
-              <div className="mt-5 rounded-2xl border border-[#dcece7] bg-[#f1f8f5] p-4 text-sm leading-7 text-[#365b54]">
+              <div
+                aria-live="polite"
+                className="mt-5 whitespace-pre-line rounded-2xl border border-[#dcece7] bg-[#f1f8f5] p-4 text-sm leading-7 text-[#365b54]"
+              >
                 <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-[#0f766e]">
                   <ShieldCheckIcon />
                   {trStatic("Grounded answer")}
