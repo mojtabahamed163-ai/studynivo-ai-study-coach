@@ -1,0 +1,17 @@
+{
+  "routes": [
+    { "path": "/login", "title": "Sign in" },
+    { "path": "/", "title": "StudyNivo Landing" },
+    { "path": "/dashboard", "title": "Dashboard" },
+    { "path": "/subjects", "title": "Subjects" },
+    { "path": "/subjects/:id", "title": "Subject Space" },
+    { "path": "/study-plan", "title": "Study Plan" },
+    { "path": "/review", "title": "Review Me" },
+    { "path": "/progress", "title": "Progress" },
+    { "path": "/saved", "title": "Saved Items" },
+    { "path": "/settings", "title": "Settings" },
+    { "path": "/session/:id", "title": "Study Session" },
+    { "path": "/practice/:id", "title": "Practice Test" },
+    { "path": "/mock/:id", "title": "Full Mock Exam" }
+  ]
+}
