@@ -889,6 +889,7 @@ function AppShell({
               workspace={workspace}
               setWorkspace={setWorkspace}
               onNavigate={setLocation}
+              locale={locale}
             />
           ) : practiceMatch || mockMatch ? (
             <PersistedPracticeTest
@@ -3042,11 +3043,13 @@ function StudySession({
   workspace,
   setWorkspace,
   onNavigate,
+  locale,
 }: {
   sessionId: string;
   workspace: Workspace;
   setWorkspace: React.Dispatch<React.SetStateAction<Workspace>>;
   onNavigate: (path: string) => void;
+  locale: Locale;
 }) {
   const session =
     workspace.session?.id === sessionId ? workspace.session : undefined;
@@ -3055,9 +3058,62 @@ function StudySession({
   );
   const topic = subject?.topics.find(item => item.id === session?.topicId);
   const updateSessionMutation = trpc.workspace.updateSession.useMutation();
+  const explainMutation = trpc.ai.askTextMaterial.useMutation();
   const [elapsed, setElapsed] = useState(session?.elapsed ?? 0);
   const [paused, setPaused] = useState(session?.status === "paused");
   const [actionError, setActionError] = useState("");
+  const [lessonExplanation, setLessonExplanation] = useState("");
+  const [explanationLoading, setExplanationLoading] = useState(false);
+  const [explanationError, setExplanationError] = useState("");
+  useEffect(() => {
+    if (!subject || !topic) return;
+    const context = [
+      topic.note ? `${topic.name}: ${topic.note}` : "",
+      ...subject.materials
+        .map(material => material.text?.trim() || "")
+        .filter(Boolean),
+    ]
+      .join("\n\n")
+      .slice(0, 16000);
+    if (!context) {
+      setExplanationError(
+        trStatic(
+          "Add or finish indexing a source so StudyNivo can explain this lesson."
+        )
+      );
+      return;
+    }
+    let cancelled = false;
+    setExplanationLoading(true);
+    setExplanationError("");
+    setLessonExplanation("");
+    void explainMutation
+      .mutateAsync({
+        subjectName: subject.name,
+        question:
+          locale === "ar"
+            ? `اشرح درس ${topic.name} للطالب المبتدئ خطوة بخطوة وبعبارات بسيطة، ثم اذكر خلاصة قصيرة.`
+            : `Explain ${topic.name} to a beginner step by step in simple language, then give a short takeaway.`,
+        context,
+        sourceRef: topic.source,
+        locale,
+      })
+      .then(result => {
+        if (!cancelled) setLessonExplanation(result.answer);
+      })
+      .catch(() => {
+        if (!cancelled)
+          setExplanationError(
+            trStatic("The lesson explanation could not be loaded. Try again from the material page.")
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setExplanationLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, subject?.id, topic?.id, locale]);
   useEffect(() => {
     if (!session || paused) return;
     const id = window.setInterval(
@@ -3217,6 +3273,29 @@ function StudySession({
             {topic.name}.{" "}
             {trStatic("Finish by answering one question without looking back.")}
           </p>
+          <div className="mt-7 rounded-3xl border border-[#cfe7df] bg-[#f1f8f5] p-6">
+            <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0f766e]">
+              <BookOpen className="size-4" />
+              {trStatic("Lesson explanation")}
+            </div>
+            <h3 className="mt-2 text-xl font-extrabold text-[#203c3d]">
+              {topic.name}
+            </h3>
+            {explanationLoading ? (
+              <p className="mt-4 text-sm leading-7 text-[#55716e]">
+                {trStatic("Preparing a clear explanation from your sources…")}
+              </p>
+            ) : lessonExplanation ? (
+              <div className="mt-4 whitespace-pre-line text-sm leading-8 text-[#365b54]">
+                {lessonExplanation}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm leading-7 text-[#9b5b50]">
+                {explanationError ||
+                  trStatic("Add a source to see the explanation here.")}
+              </p>
+            )}
+          </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="soft-card p-4">
               <div className="text-xs font-extrabold text-[#3b5556]">
