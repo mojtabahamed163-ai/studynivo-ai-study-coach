@@ -41,6 +41,18 @@ import {
 import { extractTopicInsights } from "./ai/materialAnalysis";
 import { enqueueMaterialProcessing } from "./materialPipeline";
 
+function insufficientContextMessage(locale: string, excerpt?: string) {
+  const safeExcerpt = excerpt?.replace(/\s+/g, " ").trim().slice(0, 360);
+  if (locale === "ar") {
+    return safeExcerpt
+      ? `المصدر يذكر: «${safeExcerpt}»\n\nلكن الملاحظات الحالية لا تحتوي على خطوات أو تفاصيل كافية لشرح الدرس كاملًا دون اختلاق معلومات. أضف صفحات أو ملاحظات أكثر، وسأشرحها خطوة بخطوة.`
+      : "لا تحتوي المادة الحالية على تفاصيل كافية لشرح الدرس دون اختلاق معلومات. أضف ملاحظات أو صفحات أكثر، وسأشرحها خطوة بخطوة.";
+  }
+  return safeExcerpt
+    ? `The source says: “${safeExcerpt}”\n\nThe current notes do not include enough steps or detail to explain the full lesson without inventing information. Add more pages or notes and I’ll explain it step by step.`
+    : "The current material does not include enough detail to explain the lesson without inventing information. Add more notes or pages and I’ll explain it step by step.";
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -358,8 +370,7 @@ export const appRouter = router({
         );
         if (!chunks.length)
           return {
-            answer:
-              "The available material is not enough to answer this yet. Add clearer notes or ask about a concept that appears in the source.",
+            answer: insufficientContextMessage(input.locale, input.context),
             sourceRefs: [],
             confidence: "low" as const,
             insufficientContext: true,
@@ -382,7 +393,7 @@ export const appRouter = router({
         return parseGroundedAnswer(
           answer,
           chunks.map(chunk => input.sourceRef || chunk.sourceRef),
-          "Could not verify an answer from the selected sources. Add more context or rephrase the question."
+          insufficientContextMessage(input.locale, chunks[0]?.text)
         );
       }),
     askMaterial: protectedProcedure
@@ -437,8 +448,7 @@ export const appRouter = router({
         const relevant = selectRelevantChunks(chunks, input.question, 5);
         if (!relevant.length)
           return {
-            answer:
-              "The available material is not enough to answer this yet. Add clearer notes or a text source to continue.",
+            answer: insufficientContextMessage(input.locale),
             sourceRefs: [],
             confidence: "low" as const,
             insufficientContext: true,
@@ -457,7 +467,7 @@ export const appRouter = router({
         return parseGroundedAnswer(
           answer,
           relevant.map(chunk => chunk.sourceRef),
-          "Could not verify an answer from the selected sources. Add clearer material or rephrase the question."
+          insufficientContextMessage(input.locale, relevant[0]?.text)
         );
       }),
   }),
