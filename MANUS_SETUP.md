@@ -21,7 +21,7 @@ https://github.com/mojtabahamed163-ai/studynivo-ai-study-coach
 - Storage
 - Speech فقط عند اختبار الملفات الصوتية
 
-أنشئ Secret جديدًا باسم `STUDYNIVO_SESSION_SECRET`، عشوائيًا وبطول 32 حرفًا أو أكثر. لا تنسخ أي Secret أو `DATABASE_URL` من حساب آخر، ولا تضعها في GitHub.
+أنشئ Secret جديدًا باسم `STUDYNIVO_SESSION_SECRET`، عشوائيًا وبطول 32 حرفًا أو أكثر. أضف أيضًا `BREVO_API_KEY` و`BREVO_FROM_EMAIL` عبر Secrets فقط إذا أردت تفعيل استعادة كلمة المرور بالبريد؛ يجب أن يكون المرسل موثقًا في Brevo. لا تنسخ أي Secret أو `DATABASE_URL` من حساب آخر، ولا تضعها في GitHub.
 
 ## التشغيل
 
@@ -60,6 +60,8 @@ curl -fsS http://127.0.0.1:3000/manus-routes.json
 - `client/src/App.tsx`: إنشاء الحساب يسجل الدخول تلقائيًا بعد نجاح الإنشاء.
 - `server/ai/quizGeneration.ts`: مراجع الأسئلة تطابق `Text section N`.
 - `drizzle/schema.ts`: عمود `quiz_attempts.status` مطابق للـmigration.
+- `drizzle/0010_black_killraven.sql`: جدول رموز استعادة كلمة المرور additive ولا يجوز تخطيه.
+- `server/_core/email.ts`: إرسال استعادة كلمة المرور عبر Brevo API، ولا تستبدل الأسرار بقيم داخل الكود.
 - `client/public/manus-routes.json`: حدّثه عند إضافة أي مسار.
 
 ## قبل النشر
