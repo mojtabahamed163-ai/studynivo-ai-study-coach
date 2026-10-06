@@ -2,9 +2,9 @@ import crypto from "node:crypto";
 import { promisify } from "node:util";
 import type { Express, Request, Response } from "express";
 import { SignJWT, jwtVerify } from "jose";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { parse as parseCookies } from "cookie";
-import { users } from "../../drizzle/schema";
+import { passwordResetTokens, users } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { COOKIE_NAME, SESSION_MAX_AGE_MS } from "@shared/const";
@@ -14,6 +14,7 @@ import {
   recordAuthFailure,
 } from "./authRateLimit";
 import { isCurrentSessionVersion } from "./sessionVersion";
+import { sendPasswordResetEmail } from "./email";
 
 const scrypt = promisify(crypto.scrypt);
 type LoginMethod = "email" | "phone";
@@ -102,6 +103,20 @@ async function signIn(res: Response, user: typeof users.$inferSelect) {
   });
 }
 
+function hashResetToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function publicOrigin(req: Request) {
+  const configured = process.env.PUBLIC_APP_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  const origin = req.get("origin");
+  if (origin && /^https?:\/\//i.test(origin)) return origin.replace(/\/$/, "");
+  const protocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim() || req.protocol;
+  const host = req.get("x-forwarded-host")?.split(",")[0]?.trim() || req.get("host");
+  return `${protocol}://${host}`;
+}
+
 export async function invalidateUserSessions(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
@@ -185,6 +200,7 @@ export async function registerCustomAuthRoutes(app: Express) {
         if (typeof name !== "string" || !name.trim() || name.trim().length > 120)
           return res.status(400).json({ error: "Enter your name" });
         if (user) {
+          recordAuthFailure(ip, method, normalized);
           return res.status(409).json({
             error:
               method === "email"
@@ -207,6 +223,7 @@ export async function registerCustomAuthRoutes(app: Express) {
           } catch (error) {
             const code = (error as { code?: string })?.code;
             if (code !== "ER_DUP_ENTRY") throw error;
+            recordAuthFailure(ip, method, normalized);
             return res.status(409).json({
               error:
                 method === "email"
@@ -253,6 +270,90 @@ export async function registerCustomAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[Custom Auth] Credentials auth failed", error);
       res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
+  app.post("/api/auth/password-reset/request", async (req, res) => {
+    const identifier = typeof req.body?.email === "string" ? req.body.email : "";
+    const normalized = normalizeEmail(identifier);
+    const genericResponse = {
+      success: true,
+      message: "If an account exists for that email, a reset link has been sent.",
+    };
+    if (!/^\S+@\S+\.\S+$/.test(normalized))
+      return res.status(400).json({ error: "Enter a valid email address" });
+    try {
+      const db = await getDb();
+      if (!db) return res.status(503).json({ error: "Database is not available" });
+      const rows = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, normalized))
+        .limit(1);
+      const user = rows[0];
+      if (!user?.passwordHash) return res.json(genericResponse);
+
+      const token = crypto.randomBytes(32).toString("hex");
+      await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
+      await db.insert(passwordResetTokens).values({
+        userId: user.id,
+        tokenHash: hashResetToken(token),
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
+      const resetUrl = `${publicOrigin(req)}/login?reset=${encodeURIComponent(token)}`;
+      try {
+        await sendPasswordResetEmail({ to: normalized, name: user.name, resetUrl });
+      } catch (error) {
+        console.error("[Password Reset] Email delivery failed", error);
+      }
+      return res.json(genericResponse);
+    } catch (error) {
+      console.error("[Password Reset] Request failed", error);
+      return res.json(genericResponse);
+    }
+  });
+
+  app.post("/api/auth/password-reset/confirm", async (req, res) => {
+    const token = typeof req.body?.token === "string" ? req.body.token : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    if (!/^[a-f0-9]{64}$/.test(token) || password.length < 8 || password.length > 128)
+      return res.status(400).json({ error: "Invalid or expired reset link" });
+    try {
+      const db = await getDb();
+      if (!db) return res.status(503).json({ error: "Database is not available" });
+      const rows = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(
+          and(
+            eq(passwordResetTokens.tokenHash, hashResetToken(token)),
+            isNull(passwordResetTokens.usedAt),
+            gt(passwordResetTokens.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+      const reset = rows[0];
+      if (!reset) return res.status(400).json({ error: "Invalid or expired reset link" });
+      const claimed = await db
+        .update(passwordResetTokens)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(passwordResetTokens.id, reset.id),
+            isNull(passwordResetTokens.usedAt)
+          )
+        );
+      if (Number(claimed[0].affectedRows ?? 0) !== 1)
+        return res.status(400).json({ error: "Invalid or expired reset link" });
+      await db
+        .update(users)
+        .set({ passwordHash: await hashPassword(password), sessionVersion: sql`${users.sessionVersion} + 1` })
+        .where(eq(users.id, reset.userId));
+      await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, reset.userId));
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("[Password Reset] Confirmation failed", error);
+      return res.status(500).json({ error: "Could not reset password" });
     }
   });
 

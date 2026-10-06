@@ -34,6 +34,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   ListChecks,
+  LoaderCircle,
   LogOut,
   Mail,
   Menu,
@@ -57,7 +58,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 type Topic = {
@@ -73,7 +74,7 @@ type Material = {
   name: string;
   type: string;
   size: string;
-  status: "indexed" | "queued" | "needs_review";
+  status: "indexed" | "queued" | "extracting" | "indexing" | "needs_review";
   addedAt: string;
   text?: string;
   duration?: number;
@@ -254,7 +255,7 @@ function readWorkspace(key: string): Workspace {
   return key.endsWith("-preview") ? starterWorkspace : emptyWorkspace;
 }
 
-function useWorkspace(userId?: string) {
+function useWorkspace(userId?: string, locale: Locale = "en") {
   const key = `studynivo-workspace-${userId ?? "preview"}`;
   const [workspace, setWorkspace] = useState<Workspace>(() =>
     userId ? emptyWorkspace : readWorkspace(key)
@@ -317,14 +318,18 @@ function useWorkspace(userId?: string) {
                   ? "indexed"
                   : "queued",
           addedAt: material.createdAt
-            ? new Date(material.createdAt).toLocaleDateString()
+            ? new Intl.DateTimeFormat(locale, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              }).format(new Date(material.createdAt))
             : "Just now",
           text: material.textContent ?? undefined,
           duration: material.audioDurationSeconds ?? undefined,
         })),
       })),
     }));
-  }, [subjectsQuery.data]);
+  }, [subjectsQuery.data, locale]);
   useEffect(() => {
     if (!savedItemsQuery.data) return;
     const names = new Map(
@@ -401,22 +406,82 @@ function LocalePicker({
   locale: Locale;
   onChange: (locale: Locale) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<React.CSSProperties>();
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, []);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const positionMenu = () => {
+      const button = buttonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const margin = 12;
+      const width = Math.min(210, window.innerWidth - margin * 2);
+      const maxHeight = Math.min(360, window.innerHeight - margin * 2);
+      const left = Math.min(
+        Math.max(margin, rect.right - width),
+        window.innerWidth - width - margin
+      );
+      let top = rect.bottom + 8;
+      if (top + maxHeight > window.innerHeight - margin)
+        top = Math.max(margin, rect.top - maxHeight - 8);
+      setMenuPosition({ top, left, width, maxHeight });
+    };
+    positionMenu();
+    window.addEventListener("resize", positionMenu);
+    window.addEventListener("scroll", positionMenu, true);
+    return () => {
+      window.removeEventListener("resize", positionMenu);
+      window.removeEventListener("scroll", positionMenu, true);
+    };
+  }, [open]);
+
   return (
-    <label className="flex items-center gap-2 text-xs font-semibold text-[#728187]">
-      <Languages className="size-4" />
-      <select
+    <div ref={pickerRef} className="locale-picker">
+      <button
+        type="button"
+        ref={buttonRef}
+        className="locale-picker-button"
         aria-label={trStatic("Language")}
-        className="border-0 bg-transparent text-xs font-bold outline-none"
-        value={locale}
-        onChange={event => onChange(event.target.value as Locale)}
+        aria-expanded={open}
+        title={trStatic("Language")}
+        onClick={() => setOpen(value => !value)}
       >
-        {supportedLocales.map(item => (
-          <option key={item.code} value={item.code}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-    </label>
+        <span aria-hidden="true" className="text-base leading-none">🌐</span>
+      </button>
+      {open && (
+        <div
+          className="locale-picker-menu"
+          style={menuPosition}
+          role="menu"
+          aria-label={trStatic("Language")}
+        >
+          {supportedLocales.map(item => (
+            <button
+              key={item.code}
+              type="button"
+              role="menuitemradio"
+              aria-checked={locale === item.code}
+              className={`locale-picker-option ${locale === item.code ? "active" : ""}`}
+              onClick={() => {
+                onChange(item.code);
+                setOpen(false);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1504,16 +1569,13 @@ function SubjectSpace({
                 size: material.sizeBytes
                   ? `${Math.max(1, Math.round(material.sizeBytes / 1024))} KB`
                   : "Processing",
-                status:
-                  material.status === "failed"
-                    ? "needs_review"
-                    : material.status === "needs_review"
-                      ? "needs_review"
-                      : material.status === "indexed"
-                        ? "indexed"
-                        : "queued",
+                status: material.status === "failed" ? "needs_review" : material.status,
                 addedAt: material.createdAt
-                  ? new Date(material.createdAt).toLocaleDateString()
+                  ? new Intl.DateTimeFormat(locale, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    }).format(new Date(material.createdAt))
                   : "Just now",
                 text: material.textContent ?? undefined,
                 duration: material.audioDurationSeconds ?? undefined,
@@ -1530,7 +1592,7 @@ function SubjectSpace({
           : item
       ),
     }));
-  }, [serverSubjectQuery.data, subject.id, setWorkspace]);
+  }, [serverSubjectQuery.data, subject.id, setWorkspace, locale]);
   const weakTopic = subject.topics.find(item => item.weak) ?? subject.topics[0];
   const startSessionMutation = trpc.workspace.startSession.useMutation();
   const startSession = async () => {
@@ -2055,6 +2117,19 @@ function MaterialsTab({
 }) {
   const retryMaterialMutation = trpc.workspace.retryMaterial.useMutation();
   const analyzeMaterialMutation = trpc.workspace.analyzeMaterial.useMutation();
+  const [analyzingMaterialId, setAnalyzingMaterialId] = useState<string | null>(null);
+  const analyzeMaterial = async (materialId: string) => {
+    if (analyzeMaterialMutation.isPending) return;
+    setAnalyzingMaterialId(materialId);
+    try {
+      await analyzeMaterialMutation.mutateAsync({
+        subjectId: Number(subject.id),
+        materialId: Number(materialId),
+      });
+    } finally {
+      setAnalyzingMaterialId(null);
+    }
+  };
   return (
     <div className="mt-6 grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
       <div className="card p-6">
@@ -2144,30 +2219,25 @@ function MaterialsTab({
                 </button>
               ) : material.status === "indexed" && /^\d+$/.test(material.id) ? (
                 <button
-                  className="source-pill text-[#32806c]"
-                  onClick={() =>
-                    void analyzeMaterialMutation.mutateAsync({
-                      subjectId: Number(subject.id),
-                      materialId: Number(material.id),
-                    })
-                  }
+                  className="source-pill text-[#32806c] disabled:cursor-wait disabled:opacity-60"
+                  disabled={analyzeMaterialMutation.isPending}
+                  aria-busy={analyzingMaterialId === material.id}
+                  onClick={() => void analyzeMaterial(material.id)}
                 >
-                  {trStatic("Analyze topics")}
+                  {analyzingMaterialId === material.id ? (
+                    <><LoaderCircle className="size-3.5 animate-spin" />{trStatic("Analyzing topics…")}</>
+                  ) : trStatic("Analyze topics")}
                 </button>
               ) : (
-                <span
-                  className={`source-pill ${material.status === "queued" ? "text-[#8c7b58]" : "text-[#32806c]"}`}
-                >
+                <span className={`source-pill ${material.status === "queued" ? "text-[#8c7b58]" : "text-[#32806c]"}`}>
                   {material.status === "indexed" ? (
-                    <>
-                      <CircleCheck className="size-3.5" />
-                      {trStatic("Indexed")}
-                    </>
+                    <><CircleCheck className="size-3.5" />{trStatic("Indexed")}</>
+                  ) : material.status === "queued" ? (
+                    <><Clock3 className="size-3.5" />{trStatic("Queued")}</>
+                  ) : material.status === "extracting" ? (
+                    <><Clock3 className="size-3.5" />{trStatic("Extracting")}</>
                   ) : (
-                    <>
-                      <Clock3 className="size-3.5" />
-                      {trStatic("Processing")}
-                    </>
+                    <><Clock3 className="size-3.5" />{trStatic("Indexing")}</>
                   )}
                 </span>
               )}
@@ -3791,7 +3861,7 @@ export default function App() {
   const saveLocale = trpc.auth.setLocale.useMutation();
   setActiveLocale(locale);
   const [location] = useLocation();
-  const [workspace, setWorkspace] = useWorkspace(user?.openId);
+  const [workspace, setWorkspace] = useWorkspace(user?.openId, locale);
   useLayoutEffect(() => {
     setActiveLocale(locale);
     localStorage.setItem("studynivo-locale", locale);

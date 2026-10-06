@@ -35,6 +35,22 @@ export const users = mysqlTable(
   })
 );
 
+export const passwordResetTokens = mysqlTable(
+  "password_reset_tokens",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    tokenHash: varchar("tokenHash", { length: 64 }).notNull().unique(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    usedAt: timestamp("usedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    userIndex: index("password_reset_tokens_user_idx").on(table.userId),
+    expiryIndex: index("password_reset_tokens_expiry_idx").on(table.expiresAt),
+  })
+);
+
 export const userProfiles = mysqlTable(
   "user_profiles",
   {
