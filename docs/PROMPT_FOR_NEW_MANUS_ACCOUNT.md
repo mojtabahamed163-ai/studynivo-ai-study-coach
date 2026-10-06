@@ -1,39 +1,29 @@
-# نص جاهز للصقه في حساب Manus الجديد
+# Prompt جاهز لحساب Manus الجديد
 
-واصل تطوير مشروع **StudyNivo** من مستودع GitHub الخاص:
+واصل تطوير وتشغيل مشروع **StudyNivo — Your Personal AI Study Coach** من مستودع GitHub:
 
 ```text
 https://github.com/mojtabahamed163-ai/studynivo-ai-study-coach
 ```
 
-استخدم الفرع `main` وآخر HEAD. اقرأ أولًا:
+استخدم الفرع `main` وآخر commit. اقرأ أولًا:
 
-1. `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md` — الوثيقة المرجعية الحالية.
-2. `MANUS_SETUP.md` — إعداد وتشغيل المشروع.
-3. `docs/NEW_MANUS_ACCOUNT_CHECKLIST.md` — فحوص الحساب الجديد.
-4. `docs/PROJECT_HANDOFF.md` — الخلفية التقنية والتاريخ.
+1. `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md` — المرجع الحالي الكامل.
+2. `MANUS_SETUP.md` — إعداد التشغيل.
+3. `docs/NEW_MANUS_ACCOUNT_CHECKLIST.md` — قائمة التحقق.
+4. `docs/PROJECT_HANDOFF.md` — الخلفية التاريخية، مع إعطاء الأولوية للوثيقة الأولى.
 5. `docs/PLAN.md` و`docs/برومبت.txt` — الخطة والمواصفة الأصلية.
 
-## تعليمات مهمة
+## المطلوب
 
-- أنشئ مشروع WebDev جديدًا مملوكًا لهذا الحساب من GitHub، مع Server وDatabase.
-- لا تحاول ربط مشروع Manus القديم أو Resource URI قديم.
-- GitHub ينقل الشيفرة والوثائق فقط؛ أنشئ Database وSecrets وخدمات Manus من جديد.
-- لا تطلب من المستخدم إرسال أي كلمة مرور أو API key في الدردشة.
-- لا تضع `.env` أو `DATABASE_URL` أو `STUDYNIVO_SESSION_SECRET` أو مفاتيح Manus في GitHub.
-- لا تحذف migrations أو تعيد تسميتها، ولا تستخدم force-push.
+- إنشاء مشروع Web جديد من GitHub مع Server وDatabase.
+- تفعيل Manus AI/Service API وStorage، وSpeech عند الحاجة.
+- إنشاء `STUDYNIVO_SESSION_SECRET` جديد عشوائيًا بطول 32 حرفًا أو أكثر عبر Secrets.
+- إضافة `BREVO_API_KEY` و`BREVO_FROM_EMAIL` عبر Secrets فقط، مع التأكد من أن المرسل موثق في Brevo.
+- عدم نقل أو طلب أي كلمة مرور أو API key في الدردشة.
+- عدم ربط Resource URI قديم أو قاعدة بيانات قديمة.
 
-## الحالة الحالية
-
-آخر commit في GitHub هو `24e3e69`، وآخر إصلاح مهم يجعل إنشاء الحساب يسجّل الدخول تلقائيًا. الفحوص الأخيرة ناجحة: `pnpm check`، و47 اختبارًا، و`pnpm build`.
-
-المشروع يحتوي على المصادقة، المواد، رفع الملفات، الفهرسة، Topics grounded، Ask Material، البحث، Flashcards، Practice، Full Mock، Review Me، جلسات الدراسة، Progress، 14 لغة، RTL وLight/Dark.
-
-## نفّذ الآن
-
-1. جهّز مشروع WebDev جديدًا وفعّل Server وDatabase وManus AI/Storage.
-2. أنشئ `STUDYNIVO_SESSION_SECRET` جديدًا عشوائيًا بطول 32+ حرفًا عبر Secrets.
-3. شغّل:
+## الفحوص
 
 ```bash
 pnpm install --frozen-lockfile
@@ -44,10 +34,21 @@ pnpm db:migrate
 pnpm dev
 ```
 
-4. تحقق من `/api/health` و`/manus-routes.json`.
-5. نفّذ E2E كاملًا: إنشاء حساب → Subject → TXT/PDF → indexed → Analyze topics → Ask Material → Flashcards → Practice → Full Mock → إكمال → reload → Review Me → Study Session → Progress.
-6. تحقق من ownership بحسابين، ومن عدم كشف إجابات Full Mock قبل الإكمال.
-7. راجع العربية RTL وLight/Dark، ثم شغّل الفحوص مرة أخرى.
-8. حدّث `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md` بالحالة والرابط الجديد، ثم احفظ checkpoint وانشر مشروع الحساب الجديد فقط.
+ثم تحقق من `/api/health` و`/manus-routes.json`، ونفّذ اختبار E2E:
 
-إذا وجدت تعارضًا بين وثيقة تاريخية وهذه الرسالة، فالأولوية لآخر كود على `main` ثم `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md`.
+```text
+إنشاء حساب → Subject → رفع TXT/PDF → indexed → Analyze topics
+→ Ask Material → Flashcards → Practice Test → Full Mock Exam
+→ إكمال وإعادة تحميل التقرير → Review Me → Study Session → Progress
+```
+
+اختبر أيضًا تكرار البريد/الهاتف، كلمة المرور الأقل من 8 أحرف، ownership بين مستخدمين، استعادة كلمة المرور بعد ضبط Brevo، العربية RTL، Light/Dark، والهاتف دون تجاوز أفقي.
+
+## قواعد صارمة
+
+- لا تستخدم `force-push`.
+- لا تحذف أو تعيد تسمية migrations.
+- شغّل `pnpm check` و`pnpm test --run` و`pnpm build` و`git diff --check` بعد التعديلات.
+- لا تضع `.env` أو `DATABASE_URL` أو `STUDYNIVO_SESSION_SECRET` أو مفاتيح Brevo/Manus في GitHub.
+- أبقِ CSRF وownership وAI grounding مفعلة.
+- بعد نجاح الفحوص وE2E، احفظ checkpoint وانشر مشروع الحساب الجديد فقط، ثم حدّث `docs/TRANSFER_TO_NEW_MANUS_ACCOUNT.md`.
