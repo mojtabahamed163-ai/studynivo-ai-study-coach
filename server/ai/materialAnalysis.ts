@@ -53,7 +53,10 @@ export async function extractTopicInsights(text: string, sourceName: string, sub
     return (parsed.topics ?? [])
       .map(item => {
         const raw = item.sourceRef?.trim() || "";
-        const label = labels.get(raw) ?? labels.get(`${sourceName} · ${raw}`);
+        const label =
+          labels.get(raw) ??
+          labels.get(`${sourceName} · ${raw}`) ??
+          (raw === sourceName ? `${sourceName} · ${batch[0]!.sourceRef}` : undefined);
         return label ? { ...item, sourceRef: label } : null;
       })
       .filter((item): item is { name?: string; note?: string; sourceRef: string } => Boolean(item));
