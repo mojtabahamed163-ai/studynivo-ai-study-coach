@@ -4,7 +4,7 @@ import { extractTopicInsights } from "./materialAnalysis";
 vi.mock("./client", () => ({
   chatCompletion: vi.fn(async () => JSON.stringify({ topics: [
     { name: "Cell division", note: "Understand how genetic material is separated.", sourceRef: "Lecture · Text section 1" },
-    { name: "DNA replication", note: "Remember the major steps of replication.", sourceRef: "Lecture · Text section 2" },
+    { name: "DNA replication", note: "Remember the major steps of replication.", sourceRef: "Lecture · Text section 1" },
   ] })),
 }));
 

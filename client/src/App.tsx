@@ -37,7 +37,6 @@ import {
   LoaderCircle,
   LogOut,
   Mail,
-  Menu,
   MessageCircle,
   Moon,
   NotebookTabs,
@@ -97,6 +96,8 @@ type Session = {
   elapsed: number;
   status: "active" | "paused";
   startedAt: string;
+  reflection?: string;
+  confidence?: "low" | "medium" | "high";
 };
 type Workspace = {
   subjects: Subject[];
@@ -358,13 +359,23 @@ function useWorkspace(userId?: string, locale: Locale = "en") {
         elapsed: session.elapsedSeconds,
         status: session.status === "paused" ? "paused" : "active",
         startedAt: new Date(session.startedAt).toISOString(),
+        reflection: session.reflection ?? undefined,
+        confidence: session.confidence ?? undefined,
       },
     }));
   }, [activeSessionQuery.data]);
   useEffect(() => {
     if (loadedKey === key) localStorage.setItem(key, JSON.stringify(workspace));
   }, [key, loadedKey, workspace]);
-  return [workspace, setWorkspace] as const;
+  const workspaceError = subjectsQuery.error || savedItemsQuery.error || activeSessionQuery.error;
+  const retryWorkspace = () => {
+    void Promise.all([
+      subjectsQuery.refetch(),
+      savedItemsQuery.refetch(),
+      activeSessionQuery.refetch(),
+    ]);
+  };
+  return [workspace, setWorkspace, { error: workspaceError, retry: retryWorkspace }] as const;
 }
 
 function initials(name?: string | null) {
@@ -605,7 +616,7 @@ function Landing({
                     <span className="flex items-center gap-2 text-xs font-bold text-[#d7f2ed]">
                       <Clock3 className="size-4" /> {trStatic("30 minutes")}
                     </span>
-                    <button className="rounded-xl bg-white px-3.5 py-2.5 text-xs font-extrabold text-[#0f766e]">
+                    <button className="rounded-xl bg-white px-3.5 py-2.5 text-xs font-extrabold text-[#0f766e]" onClick={login}>
                       {trStatic("Start session")}
                       <ArrowRight className="ml-1 inline size-3.5" />
                     </button>
@@ -759,6 +770,7 @@ function AppShell({
   onTheme,
   workspace,
   setWorkspace,
+  workspaceStatus,
   user,
   logout,
 }: {
@@ -768,6 +780,7 @@ function AppShell({
   onTheme: (theme: Theme) => void;
   workspace: Workspace;
   setWorkspace: React.Dispatch<React.SetStateAction<Workspace>>;
+  workspaceStatus: { error: unknown; retry: () => void };
   user: { id?: number; name?: string | null; email?: string | null } | null;
   logout: () => Promise<void>;
 }) {
@@ -881,6 +894,14 @@ function AppShell({
             <LocalePicker locale={locale} onChange={onLocale} />
             <ThemeToggle theme={theme} onTheme={onTheme} />
           </div>
+          {Boolean(workspaceStatus.error) && (
+            <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#f0d1ca] bg-[#fff6f3] px-4 py-3 text-sm font-semibold text-[#9b5149]">
+              <span>{trStatic("We could not load all of your study data.")}</span>
+              <button className="btn-light" onClick={workspaceStatus.retry}>
+                {trStatic("Retry")}
+              </button>
+            </div>
+          )}
           {!isKnownLocation ? (
             <NotFoundView onNavigate={setLocation} />
           ) : sessionMatch ? (
@@ -940,17 +961,14 @@ function AppShell({
           )}
         </div>
       </main>
-      <div className="mobile-nav">
+      <div className="mobile-nav overflow-x-auto">
         {[
-          navItems[0],
-          navItems[1],
-          navItems[2],
-          navItems[4],
-          { id: "settings" as View, label: "More", icon: Menu },
+          ...navItems,
+          { id: "settings" as View, label: "Settings", icon: Settings2 },
         ].map(item => (
           <button
             key={item.id}
-            className={currentView === item.id ? "active" : ""}
+            className={`min-w-[68px] ${currentView === item.id ? "active" : ""}`}
             onClick={() => go(item.id)}
           >
             <item.icon className="size-[17px]" />
@@ -1013,7 +1031,16 @@ function Dashboard({
   const [sessionError, setSessionError] = useState("");
   const startSessionMutation = trpc.workspace.startSession.useMutation();
   const startSession = async () => {
-    if (!next || !topic) return;
+    if (!next) {
+      setSessionError(trStatic("Create a study space before starting a session."));
+      onNavigate("/subjects");
+      return;
+    }
+    if (!topic) {
+      setSessionError(trStatic("Add and analyze a source before starting a session."));
+      onNavigate(`/subjects/${next.id}`);
+      return;
+    }
     setSessionError("");
     if (/^\d+$/.test(next.id)) {
       try {
@@ -1383,10 +1410,12 @@ function Subjects({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [examDate, setExamDate] = useState("");
+  const [createError, setCreateError] = useState("");
   const createSubjectMutation = trpc.workspace.createSubject.useMutation();
   const utils = trpc.useUtils();
   const create = async () => {
     if (!name.trim() || createSubjectMutation.isPending) return;
+    setCreateError("");
     try {
       const created = await createSubjectMutation.mutateAsync({
         name: name.trim(),
@@ -1416,6 +1445,7 @@ function Subjects({
       setOpen(false);
     } catch (error) {
       console.error("[StudyNivo] subject sync failed", error);
+      setCreateError(trStatic("Could not create this study space. Please retry."));
     }
   };
   return (
@@ -1430,7 +1460,7 @@ function Subjects({
             )}
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setOpen(true)}>
+        <button className="btn-primary" onClick={() => { setCreateError(""); setOpen(true); }}>
           <Plus className="size-4" />
           {trStatic("Create subject")}
         </button>
@@ -1507,11 +1537,20 @@ function Subjects({
               <button className="btn-light" onClick={() => setOpen(false)}>
                 {trStatic("Cancel")}
               </button>
-              <button className="btn-primary" onClick={create}>
+              <button
+                className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={createSubjectMutation.isPending || !name.trim()}
+                onClick={() => void create()}
+              >
                 {trStatic("Create subject")}
                 <ArrowRight className="size-4" />
               </button>
             </div>
+            {createError && (
+              <div role="alert" className="mt-4 text-sm font-semibold text-[#9b5149]">
+                {createError}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1545,14 +1584,18 @@ function SubjectSpace({
   const [note, setNote] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [chatAnswer, setChatAnswer] = useState("");
+  const [chatSources, setChatSources] = useState<string[]>([]);
+  const [chatConfidence, setChatConfidence] = useState<"low" | "medium" | "high">("low");
   const [flashIndex, setFlashIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const askMaterialMutation = trpc.ai.askTextMaterial.useMutation();
+  const [sessionError, setSessionError] = useState("");
+  const askMaterialMutation = trpc.ai.askMaterial.useMutation();
+  const askTextMaterialMutation = trpc.ai.askTextMaterial.useMutation();
   const addTextMaterialMutation = trpc.workspace.addTextMaterial.useMutation();
   const uploadMaterialMutation = trpc.workspace.uploadMaterial.useMutation();
   const serverSubjectQuery = trpc.workspace.subject.useQuery(
     { id: Number(subject.id) },
-    { enabled: /^\d+$/.test(subject.id), refetchInterval: 3000, retry: false }
+    { enabled: /^\d+$/.test(subject.id), refetchInterval: 15000, retry: false }
   );
   useEffect(() => {
     const serverSubject = serverSubjectQuery.data;
@@ -1597,27 +1640,37 @@ function SubjectSpace({
   const weakTopic = subject.topics.find(item => item.weak) ?? subject.topics[0];
   const startSessionMutation = trpc.workspace.startSession.useMutation();
   const startSession = async () => {
-    if (!weakTopic) return;
-    if (/^\d+$/.test(subject.id)) {
-      const created = await startSessionMutation.mutateAsync({
-        subjectId: Number(subject.id),
-        topicId: /^\d+$/.test(weakTopic.id) ? Number(weakTopic.id) : undefined,
-        durationMinutes: 30,
-      });
-      const id = String(created.id);
-      setWorkspace(prev => ({
-        ...prev,
-        session: {
-          id,
-          subjectId: subject.id,
-          topicId: weakTopic.id,
-          duration: created.durationMinutes,
-          elapsed: created.elapsedSeconds,
-          status: "active",
-          startedAt: new Date(created.startedAt).toISOString(),
-        },
-      }));
-      onNavigate(`/session/${id}`);
+    if (!weakTopic) {
+      setSessionError(trStatic("Add and analyze a source before starting a focused session."));
+      return;
+    }
+    setSessionError("");
+    try {
+      if (/^\d+$/.test(subject.id)) {
+        const created = await startSessionMutation.mutateAsync({
+          subjectId: Number(subject.id),
+          topicId: /^\d+$/.test(weakTopic.id) ? Number(weakTopic.id) : undefined,
+          durationMinutes: 30,
+        });
+        const id = String(created.id);
+        setWorkspace(prev => ({
+          ...prev,
+          session: {
+            id,
+            subjectId: subject.id,
+            topicId: weakTopic.id,
+            duration: created.durationMinutes,
+            elapsed: created.elapsedSeconds,
+            status: "active",
+            startedAt: new Date(created.startedAt).toISOString(),
+          },
+        }));
+        onNavigate(`/session/${id}`);
+        return;
+      }
+    } catch (error) {
+      console.error("[StudyNivo] session start failed", error);
+      setSessionError(trStatic("Could not start the session. Please retry."));
       return;
     }
     const id = `session-${Date.now()}`;
@@ -1635,7 +1688,7 @@ function SubjectSpace({
     }));
     onNavigate(`/session/${id}`);
   };
-  const addNote = () => {
+  const addNote = async () => {
     if (!note.trim()) return;
     const material: Material = {
       id: `note-${Date.now()}`,
@@ -1646,18 +1699,21 @@ function SubjectSpace({
       addedAt: "Just now",
       text: note,
     };
-    if (/^\d+$/.test(subject.id))
-      void addTextMaterialMutation
-        .mutateAsync({
+    if (/^\d+$/.test(subject.id)) {
+      try {
+        await addTextMaterialMutation.mutateAsync({
           subjectId: Number(subject.id),
           name: material.name,
           kind: "notes",
           textContent: note,
           sourceRef: "Pasted study notes",
-        })
-        .catch(error =>
-          console.error("[StudyNivo] material sync failed", error)
-        );
+        });
+      } catch (error) {
+        console.error("[StudyNivo] material sync failed", error);
+        setChatAnswer(trStatic("Saving the notes failed. Please retry."));
+        return;
+      }
+    }
     setWorkspace(prev => ({
       ...prev,
       subjects: prev.subjects.map(item =>
@@ -1755,15 +1811,19 @@ function SubjectSpace({
           return;
         }
       } else if (isText && /^\d+$/.test(subject.id)) {
-        await addTextMaterialMutation
-          .mutateAsync({
+        try {
+          await addTextMaterialMutation.mutateAsync({
             subjectId: Number(subject.id),
             name: file.name,
             kind: "text",
             textContent: value,
             sourceRef: file.name,
-          })
-          .catch(error => console.error("[StudyNivo] file sync failed", error));
+          });
+        } catch (error) {
+          console.error("[StudyNivo] file sync failed", error);
+          setChatAnswer(trStatic("Saving the text file failed. Please retry."));
+          return;
+        }
       }
       setWorkspace(prev => ({
         ...prev,
@@ -1786,30 +1846,32 @@ function SubjectSpace({
   const ask = async () => {
     const q = chatInput.trim();
     if (!q) return;
-    const context = subject.materials
-      .map(material => material.text)
-      .filter(Boolean)
-      .join("\n\n");
-    if (!context) {
-      setChatAnswer(
-        `Add a text or Markdown source to ${subject.name} first. I won't guess beyond the material you provide.`
-      );
-      return;
-    }
     try {
-      const result = await askMaterialMutation.mutateAsync({
-        subjectName: subject.name,
-        question: q,
-        context,
-        sourceRef: subject.materials[0]?.name,
-        locale,
-      });
-      setChatAnswer(result.answer);
+      const result = /^\d+$/.test(subject.id)
+        ? await askMaterialMutation.mutateAsync({
+            subjectId: Number(subject.id),
+            question: q,
+            locale,
+          })
+        : await askTextMaterialMutation.mutateAsync({
+            subjectName: subject.name,
+            question: q,
+            context: subject.materials.map(material => material.text).filter(Boolean).join("\n\n"),
+            sourceRef: subject.materials[0]?.name,
+            locale,
+          });
+      setChatAnswer(
+        result.insufficientContext
+          ? `${result.answer}\n\n${trStatic("Add more indexed material for a fuller explanation.")}`
+          : result.answer
+      );
+      setChatSources(result.sourceRefs.map(source => source.label));
+      setChatConfidence(result.confidence);
     } catch (error) {
       console.error("[StudyNivo] grounded chat failed", error);
-      setChatAnswer(
-        "I couldn't reach the grounded coach right now. Try again when the AI service is available."
-      );
+      setChatAnswer(trStatic("The grounded coach is unavailable. Please retry."));
+      setChatSources([]);
+      setChatConfidence("low");
     }
     setChatInput("");
   };
@@ -1827,6 +1889,11 @@ function SubjectSpace({
   ] as const;
   return (
     <>
+      {sessionError && (
+        <div role="alert" className="mb-4 rounded-2xl border border-[#f0d1ca] bg-[#fff6f3] p-3 text-sm font-semibold text-[#9b5149]">
+          {sessionError}
+        </div>
+      )}
       <button
         className="btn-quiet -ml-2 mb-5"
         onClick={() => onNavigate("/subjects")}
@@ -1867,9 +1934,9 @@ function SubjectSpace({
         ))}
       </div>
       {tab === "overview" && (
-        <SubjectOverview
-          subject={subject}
-          onStart={startSession}
+      <SubjectOverview
+        subject={subject}
+        onStart={startSession}
           onTab={setTab}
         />
       )}
@@ -1942,9 +2009,14 @@ function SubjectSpace({
               >
                 <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-[#0f766e]">
                   <ShieldCheckIcon />
-                  {trStatic("Grounded answer")}
+                  {trStatic("Grounded answer")} · {trStatic(chatConfidence)}
                 </div>
                 {chatAnswer}
+                {chatSources.length > 0 && (
+                  <div className="mt-4 border-t border-[#d3e7e0] pt-3 text-xs font-semibold text-[#52736b]">
+                    {trStatic("Sources")}: {chatSources.join(" · ")}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1995,9 +2067,15 @@ function SubjectOverview({
             {trStatic("Low confidence review")}
           </span>
         </div>
-        <button className="btn-primary mt-7" onClick={onStart}>
+        <button
+          className="btn-primary mt-7 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!subject.topics.length}
+          onClick={onStart}
+        >
           <Play className="size-4" />
-          {trStatic("Start session")}
+          {subject.topics.length
+            ? trStatic("Start session")
+            : trStatic("Add and analyze a source first")}
         </button>
       </div>
       <div className="card p-6">
@@ -2486,6 +2564,11 @@ function StudyPlan({
   workspace: Workspace;
   onNavigate: (path: string) => void;
 }) {
+  const recommendationQuery = trpc.workspace.studyRecommendation.useQuery(
+    { availableMinutes: 30 },
+    { retry: false }
+  );
+  const recommendation = recommendationQuery.data;
   const tasks = workspace.subjects.flatMap(subject =>
     subject.topics
       .filter(topic => topic.weak)
@@ -2514,7 +2597,23 @@ function StudyPlan({
             <CalendarDays className="size-6 text-[#0f766e]" />
           </div>
           <div className="mt-6 space-y-3">
-            {tasks.length ? (
+            {recommendation ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-[#e4ece8] p-4">
+                <div className="grid size-8 place-items-center rounded-xl bg-[#eaf4f1] text-xs font-extrabold text-[#0f766e]">
+                  01
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-extrabold text-[#40525a]">{recommendation.title}</div>
+                  <div className="mt-1 text-xs text-[#667477]">
+                    {recommendation.reason} · {recommendation.recommendedMinutes} {trStatic("min")}
+                  </div>
+                </div>
+                <button className="btn-quiet" onClick={() => onNavigate(`/subjects/${recommendation.subjectId}`)}>
+                  {trStatic("Open")}
+                  <ArrowRight className="size-4" />
+                </button>
+              </div>
+            ) : tasks.length ? (
               tasks.map(({ subject, topic }, index) => (
                 <div
                   key={`${subject.id}-${topic.id}`}
@@ -2540,6 +2639,10 @@ function StudyPlan({
                   </button>
                 </div>
               ))
+            ) : recommendationQuery.isError ? (
+              <div role="alert" className="soft-card p-5 text-sm text-[#9b5149]">
+                {trStatic("The study plan could not load. Please retry from the dashboard.")}
+              </div>
             ) : (
               <div className="soft-card p-5 text-sm text-[#688078]">
                 {trStatic(
@@ -2552,15 +2655,14 @@ function StudyPlan({
         <div className="card p-6">
           <div className="kicker">{trStatic("Planning signal")}</div>
           <div className="mt-5 text-4xl font-extrabold tracking-[-.06em] text-[#0f766e]">
-            42 {trStatic("min")}
+            {recommendation?.recommendedMinutes ?? "—"} {recommendation && trStatic("min")}
           </div>
           <div className="mt-1 text-xs font-semibold text-[#889597]">
-            {trStatic("your recent average session")}
+            {recommendation ? trStatic("recommended for this focus") : trStatic("no recommendation yet")}
           </div>
           <div className="mt-6 rounded-2xl bg-[#f0f6f3] p-4 text-xs leading-6 text-[#5b7770]">
-            {trStatic(
-              "Your plan is becoming more realistic. It favors one focused task over filling time with low-value work."
-            )}
+            {recommendation?.reason ??
+              trStatic("Add indexed topics and review history to shape your next study step.")}
           </div>
           <div className="mt-6 flex items-center gap-2 text-xs font-bold text-[#6f8380]">
             <CircleCheck className="size-4 text-[#0f766e]" />
@@ -3058,44 +3160,33 @@ function StudySession({
   );
   const topic = subject?.topics.find(item => item.id === session?.topicId);
   const updateSessionMutation = trpc.workspace.updateSession.useMutation();
-  const explainMutation = trpc.ai.askTextMaterial.useMutation();
+  const explainMutation = trpc.ai.askMaterial.useMutation();
   const [elapsed, setElapsed] = useState(session?.elapsed ?? 0);
   const [paused, setPaused] = useState(session?.status === "paused");
   const [actionError, setActionError] = useState("");
+  const [reflection, setReflection] = useState(session?.reflection ?? "");
+  const [confidence, setConfidence] = useState<"low" | "medium" | "high" | "">(session?.confidence ?? "");
   const [lessonExplanation, setLessonExplanation] = useState("");
   const [explanationLoading, setExplanationLoading] = useState(false);
   const [explanationError, setExplanationError] = useState("");
+  const elapsedRef = useRef(elapsed);
+  useEffect(() => {
+    elapsedRef.current = elapsed;
+  }, [elapsed]);
   useEffect(() => {
     if (!subject || !topic) return;
-    const context = [
-      topic.note ? `${topic.name}: ${topic.note}` : "",
-      ...subject.materials
-        .map(material => material.text?.trim() || "")
-        .filter(Boolean),
-    ]
-      .join("\n\n")
-      .slice(0, 16000);
-    if (!context) {
-      setExplanationError(
-        trStatic(
-          "Add or finish indexing a source so StudyNivo can explain this lesson."
-        )
-      );
-      return;
-    }
+    if (!/^\d+$/.test(subject.id)) return;
     let cancelled = false;
     setExplanationLoading(true);
     setExplanationError("");
     setLessonExplanation("");
     void explainMutation
       .mutateAsync({
-        subjectName: subject.name,
+        subjectId: Number(subject.id),
         question:
           locale === "ar"
             ? `اشرح درس ${topic.name} للطالب المبتدئ خطوة بخطوة وبعبارات بسيطة، ثم اذكر خلاصة قصيرة.`
             : `Explain ${topic.name} to a beginner step by step in simple language, then give a short takeaway.`,
-        context,
-        sourceRef: topic.source,
         locale,
       })
       .then(result => {
@@ -3122,6 +3213,21 @@ function StudySession({
     );
     return () => window.clearInterval(id);
   }, [session, paused]);
+  useEffect(() => {
+    if (!session || paused || !/^\d+$/.test(sessionId)) return;
+    const id = window.setInterval(() => {
+      void updateSessionMutation
+        .mutateAsync({
+          sessionId: Number(sessionId),
+          elapsedSeconds: elapsedRef.current,
+          status: "active",
+          reflection: reflection || undefined,
+          confidence: confidence || undefined,
+        })
+        .catch(() => setActionError(trStatic("Progress could not be saved. Please retry.")));
+    }, 10000);
+    return () => window.clearInterval(id);
+  }, [sessionId, paused, session?.id, reflection, confidence]);
   if (!session || !subject || !topic)
     return (
       <div className="card p-8 text-center">
@@ -3139,12 +3245,18 @@ function StudySession({
     );
   const finish = async () => {
     setActionError("");
+    if (!reflection.trim() || !confidence) {
+      setActionError(trStatic("Write a short recall and choose your confidence before completing."));
+      return;
+    }
     try {
       if (/^\d+$/.test(sessionId))
         await updateSessionMutation.mutateAsync({
           sessionId: Number(sessionId),
           elapsedSeconds: elapsed,
           status: "completed",
+          reflection: reflection.trim(),
+          confidence,
         });
     } catch {
       setActionError(trStatic("Could not save this session. Please retry."));
@@ -3172,6 +3284,8 @@ function StudySession({
           sessionId: Number(sessionId),
           elapsedSeconds: elapsed,
           status: nextPaused ? "paused" : "active",
+          reflection: reflection.trim() || undefined,
+          confidence: confidence || undefined,
         });
     } catch {
       setActionError(trStatic("Could not save this session. Please retry."));
@@ -3199,6 +3313,8 @@ function StudySession({
           sessionId: Number(sessionId),
           elapsedSeconds: elapsed,
           status: "paused",
+          reflection: reflection.trim() || undefined,
+          confidence: confidence || undefined,
         });
     } catch {
       setActionError(trStatic("Could not save this session. Please retry."));
@@ -3322,6 +3438,34 @@ function StudySession({
               </div>
             </div>
           </div>
+          <div className="mt-6 rounded-3xl border border-[#e4ece8] bg-white p-5">
+            <div className="kicker">{trStatic("Recall check")}</div>
+            <label className="mt-2 block text-sm font-extrabold text-[#3b5556]" htmlFor="session-reflection">
+              {trStatic("Explain the idea in your own words")}
+            </label>
+            <textarea
+              id="session-reflection"
+              className="textarea mt-3"
+              value={reflection}
+              onChange={event => setReflection(event.target.value)}
+              placeholder={trStatic("What is the main idea, and how would you teach it?")}
+              rows={4}
+            />
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-extrabold text-[#52676a]">{trStatic("Confidence")}</span>
+              {(["low", "medium", "high"] as const).map(level => (
+                <button
+                  key={level}
+                  type="button"
+                  className={`btn-light min-h-9 px-3 text-xs ${confidence === level ? "border-[#0f766e] bg-[#eaf4f1] text-[#0f766e]" : ""}`}
+                  aria-pressed={confidence === level}
+                  onClick={() => setConfidence(level)}
+                >
+                  {trStatic(level)}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="mt-7 flex flex-wrap gap-3">
             <button
               className="btn-primary"
@@ -3356,7 +3500,7 @@ function StudySession({
           )}
           <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-[#8a9798]">
             <CircleCheck className="size-4 text-[#0f766e]" />
-            {trStatic("Your progress is saved when you pause or complete.")}
+            {trStatic("Your progress is saved periodically and when you pause or complete.")}
           </div>
         </div>
       </div>
@@ -3943,7 +4087,7 @@ export default function App() {
   const saveLocale = trpc.auth.setLocale.useMutation();
   setActiveLocale(locale);
   const [location] = useLocation();
-  const [workspace, setWorkspace] = useWorkspace(user?.openId, locale);
+  const [workspace, setWorkspace, workspaceStatus] = useWorkspace(user?.openId, locale);
   useLayoutEffect(() => {
     setActiveLocale(locale);
     localStorage.setItem("studynivo-locale", locale);
@@ -3988,6 +4132,7 @@ export default function App() {
       onLocale={setLocale}
       workspace={workspace}
       setWorkspace={setWorkspace}
+      workspaceStatus={workspaceStatus}
       user={user}
       logout={logout}
       theme={theme}

@@ -1,7 +1,7 @@
 import { ENV } from "../_core/env";
 
 export type SourceRef = { label: string; page?: number; section?: string; timestamp?: number };
-export type GroundedAnswer = { answer: string; sourceRefs: SourceRef[]; confidence: "low" | "medium" | "high"; insufficientContext: boolean; conflicts: Array<{ claim: string; sources: SourceRef[] }> };
+export type GroundedAnswer = { answer: string; sourceRefs: SourceRef[]; confidence: "low" | "medium" | "high"; insufficientContext: boolean; conflicts: Array<{ claim: string; sources: SourceRef[] }>; evidence: Array<{ quote: string; sourceRef: SourceRef }> };
 export type InterfaceLocale = "en" | "ar" | "es" | "pt" | "fr" | "de" | "it" | "tr" | "ja" | "ko" | "zh" | "hi" | "ru" | "id";
 
 const languageNames: Record<InterfaceLocale, string> = { en: "English", ar: "Arabic", es: "Spanish", pt: "Brazilian Portuguese", fr: "French", de: "German", it: "Italian", tr: "Turkish", ja: "Japanese", ko: "Korean", zh: "Simplified Chinese", hi: "Hindi", ru: "Russian", id: "Indonesian" };
@@ -13,6 +13,18 @@ export const groundedAnswerJsonSchema: Record<string, unknown> = {
   additionalProperties: false,
   properties: {
     answer: { type: "string" },
+    evidence: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          quote: { type: "string" },
+          sourceRef: { type: "object", additionalProperties: false, properties: { label: { type: "string" } }, required: ["label"] },
+        },
+        required: ["quote", "sourceRef"],
+      },
+    },
     sourceRefs: {
       type: "array",
       items: {
@@ -47,6 +59,7 @@ export const groundedAnswerJsonSchema: Record<string, unknown> = {
   },
   required: [
     "answer",
+    "evidence",
     "sourceRefs",
     "confidence",
     "insufficientContext",
@@ -74,6 +87,7 @@ Teach for understanding, not just correctness:
 - When the material describes a process, method, or lesson, explain it in short numbered steps in the order supported by the source.
 - Define important terms briefly before using them, and keep formulas and proper nouns intact.
 - End with a concise takeaway or memory cue only when it is supported by the material.
+- Include 1–5 short evidence quotes copied exactly from the context for the key explanation, each paired with its exact source label. Never paraphrase inside a quote.
 - Use short paragraphs and clear bullets; adapt the depth to the question and do not pad the answer.
 
 If the context is insufficient for a complete explanation, say exactly what the material does and does not establish, set insufficientContext=true, and do not fill missing steps from general knowledge. Never invent a source label, page, quote, formula, example, or fact. Return only source labels exactly as they appear in the supplied context. If sources conflict, explain the conflict and cite only the supplied source labels. Context:\n${sourceContext}`;

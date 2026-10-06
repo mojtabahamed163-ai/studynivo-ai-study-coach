@@ -287,6 +287,12 @@ export async function registerCustomAuthRoutes(app: Express) {
     };
     if (!/^\S+@\S+\.\S+$/.test(normalized))
       return res.status(400).json({ error: "Enter a valid email address" });
+    const requestIp = req.ip || req.socket.remoteAddress || "unknown";
+    if (isAuthRateLimited(requestIp, "email", normalized))
+      return res.json(genericResponse);
+    // Treat reset requests as budget-consuming auth events. This preserves the
+    // generic response while limiting both IP and email abuse in this process.
+    recordAuthFailure(requestIp, "email", normalized);
     try {
       const db = await getDb();
       if (!db) return res.status(503).json({ error: "Database is not available" });

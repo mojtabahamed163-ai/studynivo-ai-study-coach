@@ -191,6 +191,8 @@ export const studySessions = mysqlTable(
       .notNull(),
     startedAt: timestamp("startedAt").defaultNow().notNull(),
     completedAt: timestamp("completedAt"),
+    reflection: text("reflection"),
+    confidence: mysqlEnum("confidence", ["low", "medium", "high"]),
   },
   table => ({
     userIndex: index("sessions_user_idx").on(table.userId),

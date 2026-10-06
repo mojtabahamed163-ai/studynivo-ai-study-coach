@@ -109,7 +109,7 @@ export const appRouter = router({
           subjectId: z.number().int().positive(),
           name: z.string().min(1).max(255),
           kind: z.string().min(1).max(32),
-          textContent: z.string().min(1),
+          textContent: z.string().min(1).max(5_000_000),
           sourceRef: z.string().max(255).optional(),
         })
       )
@@ -312,6 +312,8 @@ export const appRouter = router({
           sessionId: z.number().int().positive(),
           elapsedSeconds: z.number().int().min(0).max(10_800),
           status: z.enum(["active", "paused", "completed"]),
+          reflection: z.string().trim().max(5000).optional(),
+          confidence: z.enum(["low", "medium", "high"]).optional(),
         })
       )
       .mutation(({ ctx, input }) =>
@@ -371,13 +373,14 @@ export const appRouter = router({
         if (!chunks.length)
           return {
             answer: insufficientContextMessage(input.locale, input.context),
+            evidence: [],
             sourceRefs: [],
             confidence: "low" as const,
             insufficientContext: true,
             conflicts: [],
           };
         const context = chunks
-          .map(chunk => `[${input.sourceRef || chunk.sourceRef}] ${chunk.text}`)
+          .map(chunk => `[${chunk.sourceRef}] ${chunk.text}`)
           .join("\n\n");
         const answer = await chatCompletion([
           {
@@ -392,8 +395,9 @@ export const appRouter = router({
         ], { jsonSchema: groundedAnswerJsonSchema, timeoutMs: 60_000 });
         return parseGroundedAnswer(
           answer,
-          chunks.map(chunk => input.sourceRef || chunk.sourceRef),
-          insufficientContextMessage(input.locale, chunks[0]?.text)
+          chunks.map(chunk => chunk.sourceRef),
+          insufficientContextMessage(input.locale, chunks[0]?.text),
+          chunks.map(chunk => ({ sourceRef: chunk.sourceRef, text: chunk.text }))
         );
       }),
     askMaterial: protectedProcedure
@@ -449,6 +453,7 @@ export const appRouter = router({
         if (!relevant.length)
           return {
             answer: insufficientContextMessage(input.locale),
+            evidence: [],
             sourceRefs: [],
             confidence: "low" as const,
             insufficientContext: true,
@@ -467,7 +472,8 @@ export const appRouter = router({
         return parseGroundedAnswer(
           answer,
           relevant.map(chunk => chunk.sourceRef),
-          insufficientContextMessage(input.locale, relevant[0]?.text)
+          insufficientContextMessage(input.locale, relevant[0]?.text),
+          relevant.map(chunk => ({ sourceRef: chunk.sourceRef, text: chunk.text }))
         );
       }),
   }),

@@ -2,6 +2,7 @@ import { groundedAnswerSchema } from "./schemas";
 
 export type VerifiedGroundedAnswer = {
   answer: string;
+  evidence: Array<{ quote: string; sourceRef: { label: string } }>;
   sourceRefs: Array<{ label: string }>;
   confidence: "low" | "medium" | "high";
   insufficientContext: boolean;
@@ -11,7 +12,8 @@ export type VerifiedGroundedAnswer = {
 export function parseGroundedAnswer(
   raw: string,
   allowedLabels: Iterable<string>,
-  fallbackAnswer: string
+  fallbackAnswer: string,
+  allowedEvidence: Iterable<{ sourceRef: string; text: string }> = []
 ): VerifiedGroundedAnswer {
   let value: unknown;
   try {
@@ -19,6 +21,7 @@ export function parseGroundedAnswer(
   } catch {
     return {
       answer: fallbackAnswer,
+      evidence: [],
       sourceRefs: [],
       confidence: "low",
       insufficientContext: true,
@@ -29,6 +32,7 @@ export function parseGroundedAnswer(
   if (!parsed.success) {
     return {
       answer: fallbackAnswer,
+      evidence: [],
       sourceRefs: [],
       confidence: "low",
       insufficientContext: true,
@@ -36,6 +40,23 @@ export function parseGroundedAnswer(
     };
   }
   const allowed = new Set(allowedLabels);
+  const evidenceSources = [...allowedEvidence];
+  const evidence = parsed.data.evidence
+    .map(item => {
+      const label = item.sourceRef.label.trim();
+      const quote = item.quote.trim();
+      const source = evidenceSources.find(candidate => candidate.sourceRef === label);
+      if (!label || !quote || !allowed.has(label) || !source) return null;
+      const normalizedQuote = quote.replace(/\s+/g, " ").toLocaleLowerCase();
+      const normalizedText = source.text.replace(/\s+/g, " ").toLocaleLowerCase();
+      return normalizedText.includes(normalizedQuote)
+        ? { quote, sourceRef: { label } }
+        : null;
+    })
+    .filter(
+      (item): item is { quote: string; sourceRef: { label: string } } =>
+        Boolean(item)
+    );
   const sourceRefs = [
     ...new Set(
       parsed.data.sourceRefs
@@ -51,16 +72,13 @@ export function parseGroundedAnswer(
           .filter(label => label && allowed.has(label))
       ),
     ].map(label => ({ label }));
-    return sources.length
-      ? [{ claim: conflict.claim, sources }]
-      : [];
+    return sources.length ? [{ claim: conflict.claim, sources }] : [];
   });
   const insufficientContext =
-    parsed.data.insufficientContext || sourceRefs.length === 0;
+    parsed.data.insufficientContext || sourceRefs.length === 0 || evidence.length === 0;
   return {
-    answer: insufficientContext && sourceRefs.length === 0
-      ? fallbackAnswer
-      : parsed.data.answer,
+    answer: insufficientContext ? fallbackAnswer : parsed.data.answer,
+    evidence,
     sourceRefs,
     confidence: insufficientContext ? "low" : parsed.data.confidence,
     insufficientContext,

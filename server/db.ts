@@ -402,7 +402,12 @@ export async function getActiveStudySession(userId: number) {
 export async function updateStudySession(
   userId: number,
   sessionId: number,
-  input: { elapsedSeconds: number; status: "active" | "paused" | "completed" }
+  input: {
+    elapsedSeconds: number;
+    status: "active" | "paused" | "completed";
+    reflection?: string;
+    confidence?: "low" | "medium" | "high";
+  }
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
@@ -428,7 +433,8 @@ export async function updateStudySession(
         throw new Error("Completed study sessions cannot be reopened");
       return session;
     }
-    if (input.elapsedSeconds > session.durationMinutes * 60)
+    const elapsedSeconds = Math.max(session.elapsedSeconds, input.elapsedSeconds);
+    if (elapsedSeconds > session.durationMinutes * 60)
       throw new Error("Elapsed time exceeds the session duration");
 
     if (input.status === "active")
@@ -447,15 +453,17 @@ export async function updateStudySession(
     await tx
       .update(studySessions)
       .set({
-        elapsedSeconds: input.elapsedSeconds,
+        elapsedSeconds,
         status: input.status,
         completedAt,
+        reflection: input.reflection ?? session.reflection,
+        confidence: input.confidence ?? session.confidence,
       })
       .where(
         and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId))
       );
     if (input.status === "completed") {
-      const completedMinutes = Math.floor(input.elapsedSeconds / 60);
+      const completedMinutes = Math.floor(elapsedSeconds / 60);
       if (completedMinutes > 0)
         await tx
           .update(subjects)
@@ -741,6 +749,10 @@ export async function generateFlashcardsFromTopics(
   if (!db) throw new Error("Database is not available");
   const subject = await getSubject(userId, subjectId);
   if (!subject) throw new Error("Subject not found");
+  const hasIndexedMaterial = subject.materials.some(
+    material => material.status === "indexed" && Boolean(material.textContent?.trim())
+  );
+  if (!hasIndexedMaterial) throw new Error("NO_INDEXED_MATERIAL");
   const existing = await db
     .select({ topicId: flashcards.topicId })
     .from(flashcards)
@@ -752,15 +764,14 @@ export async function generateFlashcardsFromTopics(
   );
   const fresh = subject.topics
     .filter(topic => !existingTopics.has(topic.id))
+    .filter(topic => Boolean(topic.note?.trim() && topic.sourceRef?.trim()))
     .slice(0, 50)
     .map(topic => ({
       userId,
       subjectId,
       topicId: topic.id,
-      front: `What should you remember about ${topic.name}?`,
-      back:
-        topic.note ||
-        `Review ${topic.name} using the source-linked material before testing yourself.`,
+      front: `Explain the key idea in ${topic.name} from the source.`,
+      back: topic.note!.trim(),
       sourceRef: topic.sourceRef || null,
       difficulty:
         topic.mastery < 50
@@ -799,7 +810,7 @@ export async function reviewFlashcard(
             (input.confidence === "high"
               ? 2
               : input.confidence === "medium"
-                ? 1
+                ? 3
                 : 1)
         )
       )

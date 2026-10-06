@@ -24,10 +24,14 @@ export function FlashcardsReview({
   });
   const [revealed, setRevealed] = useState(false);
   const card = cards.data?.[0];
-  const act = (correct: boolean, confidence: "low" | "medium" | "high") => {
+  const act = async (correct: boolean, confidence: "low" | "medium" | "high") => {
     if (!card) return;
-    setRevealed(false);
-    void review.mutateAsync({ cardId: card.id, correct, confidence });
+    try {
+      await review.mutateAsync({ cardId: card.id, correct, confidence });
+      setRevealed(false);
+    } catch {
+      // The mutation error is rendered below so the card remains reviewable.
+    }
   };
   return (
     <div className="mt-6 max-w-2xl">
@@ -49,6 +53,7 @@ export function FlashcardsReview({
           </div>
         )}
         {!cards.isLoading && !card && (
+          !cards.isError && (
           <div className="mt-6 rounded-2xl bg-[#f1f8f5] p-5">
             <div className="flex items-center gap-2 text-sm font-extrabold text-[#2d675e]">
               <Sparkles className="size-4" />
@@ -66,6 +71,24 @@ export function FlashcardsReview({
             >
               {trStatic("Build cards from topics")}
             </button>
+          </div>)
+        )}
+        {cards.isError && (
+          <div role="alert" className="mt-6 rounded-2xl border border-[#f0d1ca] bg-[#fff6f3] p-5 text-sm font-semibold text-[#9b5149]">
+            {trStatic("Could not load your review queue. Please retry.")}
+            <button className="btn-light mt-4" onClick={() => void cards.refetch()}>
+              {trStatic("Retry")}
+            </button>
+          </div>
+        )}
+        {generate.isError && (
+          <div role="alert" className="mt-4 text-sm font-semibold text-[#9b5149]">
+            {trStatic("Cards could not be generated from the current sources. Please retry.")}
+          </div>
+        )}
+        {review.isError && (
+          <div role="alert" className="mt-4 text-sm font-semibold text-[#9b5149]">
+            {trStatic("Your review was not saved. Please retry.")}
           </div>
         )}
         {card && (
@@ -73,6 +96,15 @@ export function FlashcardsReview({
             <div
               className="mt-6 flashcard"
               onClick={() => setRevealed(value => !value)}
+              onKeyDown={event => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setRevealed(value => !value);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-expanded={revealed}
             >
               <div className="kicker">
                 {revealed ? trStatic("Answer") : trStatic("Prompt")}
