@@ -45,4 +45,11 @@ export async function sendPasswordResetEmail({
       `Password reset email provider returned ${response.status}${providerBody ? `: ${providerBody}` : ""}`,
     );
   }
+  const result = (await response.json().catch(() => null)) as {
+    messageId?: string;
+  } | null;
+  console.info("[Password Reset] Email accepted by Brevo", {
+    messageId: result?.messageId ? "present" : "missing",
+    recipientDomain: to.split("@")[1] ?? "unknown",
+  });
 }
