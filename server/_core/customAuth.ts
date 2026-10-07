@@ -291,6 +291,10 @@ export async function registerCustomAuthRoutes(app: Express) {
         .where(eq(users.email, normalized))
         .limit(1);
       const user = rows[0];
+      console.info("[Password Reset] Account lookup", {
+        emailDomain: normalized.split("@")[1] ?? "unknown",
+        accountFound: Boolean(user?.passwordHash),
+      });
       if (!user?.passwordHash) return res.json(genericResponse);
 
       const token = crypto.randomBytes(32).toString("hex");

@@ -18,7 +18,7 @@ export async function sendPasswordResetEmail({
   resetUrl,
 }: PasswordResetEmail) {
   const apiKey = process.env.BREVO_API_KEY;
-  const from = process.env.BREVO_FROM_EMAIL || "studynivo@outlook.com";
+  const from = process.env.BREVO_FROM_EMAIL?.trim();
   if (!apiKey || !from) {
     throw new Error("Password reset email service is not configured");
   }
@@ -40,6 +40,9 @@ export async function sendPasswordResetEmail({
   });
 
   if (!response.ok) {
-    throw new Error(`Password reset email provider returned ${response.status}`);
+    const providerBody = (await response.text()).replace(/\s+/g, " ").slice(0, 400);
+    throw new Error(
+      `Password reset email provider returned ${response.status}${providerBody ? `: ${providerBody}` : ""}`,
+    );
   }
 }
