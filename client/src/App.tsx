@@ -77,7 +77,15 @@ type Material = {
   addedAt: string;
   text?: string;
   duration?: number;
+  error?: string;
 };
+function normalizeMaterialStatus(status: string): Material["status"] {
+  if (status === "failed" || status === "needs_review") return "needs_review";
+  if (status === "indexed") return "indexed";
+  if (status === "extracting") return "extracting";
+  if (status === "indexing") return "indexing";
+  return "queued";
+}
 type Subject = {
   id: string;
   name: string;
@@ -310,14 +318,7 @@ function useWorkspace(userId?: string, locale: Locale = "en") {
           size: material.sizeBytes
             ? `${Math.max(1, Math.round(material.sizeBytes / 1024))} KB`
             : "Processing",
-          status:
-            material.status === "failed"
-              ? "needs_review"
-              : material.status === "needs_review"
-                ? "needs_review"
-                : material.status === "indexed"
-                  ? "indexed"
-                  : "queued",
+          status: normalizeMaterialStatus(material.status),
           addedAt: material.createdAt
             ? new Intl.DateTimeFormat(locale, {
                 year: "numeric",
@@ -327,6 +328,7 @@ function useWorkspace(userId?: string, locale: Locale = "en") {
             : "Just now",
           text: material.textContent ?? undefined,
           duration: material.audioDurationSeconds ?? undefined,
+          error: material.errorMessage ?? undefined,
         })),
       })),
     }));
@@ -348,7 +350,12 @@ function useWorkspace(userId?: string, locale: Locale = "en") {
   }, [savedItemsQuery.data, subjectsQuery.data]);
   useEffect(() => {
     const session = activeSessionQuery.data;
-    if (!session) return;
+    if (!session) {
+      if (activeSessionQuery.isSuccess) {
+        setWorkspace(current => ({ ...current, session: undefined }));
+      }
+      return;
+    }
     setWorkspace(current => ({
       ...current,
       session: {
@@ -367,10 +374,13 @@ function useWorkspace(userId?: string, locale: Locale = "en") {
   useEffect(() => {
     if (loadedKey === key) localStorage.setItem(key, JSON.stringify(workspace));
   }, [key, loadedKey, workspace]);
-  const workspaceError =
-    (subjectsQuery.isError && subjectsQuery.data === undefined && subjectsQuery.error) ||
-    (savedItemsQuery.isError && savedItemsQuery.data === undefined && savedItemsQuery.error) ||
-    (activeSessionQuery.isError && activeSessionQuery.data === undefined && activeSessionQuery.error);
+  const allWorkspaceQueriesFailed =
+    subjectsQuery.isError && subjectsQuery.data === undefined &&
+    savedItemsQuery.isError && savedItemsQuery.data === undefined &&
+    activeSessionQuery.isError && activeSessionQuery.data === undefined;
+  const workspaceError = allWorkspaceQueriesFailed
+    ? subjectsQuery.error || savedItemsQuery.error || activeSessionQuery.error
+    : undefined;
   const retryWorkspace = () => {
     void Promise.all([
       subjectsQuery.refetch(),
@@ -1039,7 +1049,10 @@ function Dashboard({
       onNavigate("/subjects");
       return;
     }
-    if (!topic) {
+    const hasIndexedSource = next.materials.some(
+      material => material.status === "indexed" && Boolean(material.text?.trim())
+    );
+    if (!topic || !hasIndexedSource) {
       setSessionError(trStatic("Add and analyze a source before starting a session."));
       onNavigate(`/subjects/${next.id}`);
       return;
@@ -1616,7 +1629,7 @@ function SubjectSpace({
                 size: material.sizeBytes
                   ? `${Math.max(1, Math.round(material.sizeBytes / 1024))} KB`
                   : "Processing",
-                status: material.status === "failed" ? "needs_review" : material.status,
+                status: normalizeMaterialStatus(material.status),
                 addedAt: material.createdAt
                   ? new Intl.DateTimeFormat(locale, {
                       year: "numeric",
@@ -1626,6 +1639,7 @@ function SubjectSpace({
                   : "Just now",
                 text: material.textContent ?? undefined,
                 duration: material.audioDurationSeconds ?? undefined,
+                error: material.errorMessage ?? undefined,
               })),
               topics: serverSubject.topics.map(topic => ({
                 id: String(topic.id),
@@ -1643,7 +1657,10 @@ function SubjectSpace({
   const weakTopic = subject.topics.find(item => item.weak) ?? subject.topics[0];
   const startSessionMutation = trpc.workspace.startSession.useMutation();
   const startSession = async () => {
-    if (!weakTopic) {
+    const hasIndexedSource = subject.materials.some(
+      material => material.status === "indexed" && Boolean(material.text?.trim())
+    );
+    if (!weakTopic || !hasIndexedSource) {
       setSessionError(trStatic("Add and analyze a source before starting a focused session."));
       return;
     }
@@ -2203,16 +2220,34 @@ function MaterialsTab({
   const retryMaterialMutation = trpc.workspace.retryMaterial.useMutation();
   const analyzeMaterialMutation = trpc.workspace.analyzeMaterial.useMutation();
   const [analyzingMaterialId, setAnalyzingMaterialId] = useState<string | null>(null);
+  const [materialFeedback, setMaterialFeedback] = useState("");
+  const utils = trpc.useUtils();
   const analyzeMaterial = async (materialId: string) => {
     if (analyzeMaterialMutation.isPending) return;
     setAnalyzingMaterialId(materialId);
+    setMaterialFeedback("");
     try {
       await analyzeMaterialMutation.mutateAsync({
         subjectId: Number(subject.id),
         materialId: Number(materialId),
       });
+      setMaterialFeedback(trStatic("Topics updated. Your study session is ready."));
+      await utils.workspace.subject.invalidate({ id: Number(subject.id) });
+    } catch {
+      setMaterialFeedback(trStatic("Topic analysis failed. Check the source and retry."));
     } finally {
       setAnalyzingMaterialId(null);
+    }
+  };
+  const retryMaterial = async (materialId: string) => {
+    if (retryMaterialMutation.isPending || !/^\d+$/.test(materialId)) return;
+    setMaterialFeedback("");
+    try {
+      await retryMaterialMutation.mutateAsync({ materialId: Number(materialId) });
+      setMaterialFeedback(trStatic("Retry queued. We will process this source again."));
+      await utils.workspace.subject.invalidate({ id: Number(subject.id) });
+    } catch {
+      setMaterialFeedback(trStatic("This source could not be retried. Please try again."));
     }
   };
   return (
@@ -2237,7 +2272,12 @@ function MaterialsTab({
           <Plus className="size-4" />
           {trStatic("Add notes")}
         </button>
-        <label className="mt-3 flex min-h-[94px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#b9d7ce] bg-[#f7fbf9] text-center">
+        {materialFeedback && (
+          <p role="status" aria-live="polite" className="mt-3 text-xs font-semibold text-[#0f766e]">
+            {materialFeedback}
+          </p>
+        )}
+        <label className="mt-3 flex min-h-[94px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#b9d7ce] bg-[#f7fbf9] text-center focus-within:ring-2 focus-within:ring-[#0f766e]">
           <Upload className="size-5 text-[#0f766e]" />
           <span className="mt-2 text-xs font-extrabold text-[#48615e]">
             {trStatic("Upload PDF, DOCX, images, audio, TXT, or Markdown")}
@@ -2246,7 +2286,7 @@ function MaterialsTab({
             {trStatic("Audio is transcribed with timestamps before indexing.")}
           </span>
           <input
-            className="hidden"
+            className="sr-only"
             type="file"
             accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.mp3,.wav,.ogg,.m4a,.webm,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,image/webp,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm,text/plain,text/markdown"
             onChange={event => onFile(event.target.files?.[0])}
@@ -2287,16 +2327,18 @@ function MaterialsTab({
                       : material.addedAt}
                   </span>
                 </div>
+                {material.error && (
+                  <div role="alert" className="mt-2 text-xs font-semibold text-[#a4483e]">
+                    {material.error}
+                  </div>
+                )}
               </div>
               {material.status === "needs_review" ? (
                 <button
                   className="source-pill text-[#b87920]"
-                  onClick={() => {
-                    if (/^\d+$/.test(material.id))
-                      void retryMaterialMutation.mutateAsync({
-                        materialId: Number(material.id),
-                      });
-                  }}
+                  disabled={retryMaterialMutation.isPending}
+                  aria-busy={retryMaterialMutation.isPending}
+                  onClick={() => void retryMaterial(material.id)}
                 >
                   {" "}
                   <RotateCcw className="size-3.5" />
@@ -3712,7 +3754,7 @@ function AuthGate({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [showPassword, setShowPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [authView, setAuthView] = useState<"credentials" | "request" | "confirm">(
     () => (new URLSearchParams(window.location.search).get("reset") ? "confirm" : "credentials")
   );
@@ -3893,7 +3935,10 @@ function AuthGate({
           onSubmit={submitCredentials}
         >
           {mode === "register" && (
+            <>
+            <label htmlFor="auth-name" className="sr-only">{trStatic("Your name")}</label>
             <input
+              id="auth-name"
               required
               maxLength={120}
               className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
@@ -3901,8 +3946,13 @@ function AuthGate({
               value={name}
               onChange={event => setName(event.target.value)}
             />
+            </>
           )}
+          <label htmlFor="auth-identifier" className="sr-only">
+            {method === "email" ? trStatic("Email address") : trStatic("Phone number with country code")}
+          </label>
           <input
+            id="auth-identifier"
             required
             type={method === "email" ? "email" : "tel"}
             className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]"
@@ -3916,7 +3966,9 @@ function AuthGate({
             onChange={event => setIdentifier(event.target.value)}
           />
           <div className="relative">
+            <label htmlFor="auth-password" className="sr-only">{trStatic("Password")}</label>
             <input
+              id="auth-password"
               required
               minLength={8}
               maxLength={128}
@@ -3953,7 +4005,7 @@ function AuthGate({
             {trStatic("Password must be at least 8 characters.")}
           </p>
           {error && (
-            <p className="text-xs font-semibold text-[#b14b45]">{error}</p>
+            <p role="alert" aria-live="assertive" className="text-xs font-semibold text-[#b14b45]">{error}</p>
           )}
           {notice && (
             <p role="status" className="text-xs font-semibold text-[#0f766e]">

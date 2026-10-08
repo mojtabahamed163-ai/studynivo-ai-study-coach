@@ -446,7 +446,7 @@ export const appRouter = router({
             : material.textContent;
           return chunkText(transcript).map(chunk => ({
             ...chunk,
-            sourceRef: `${material.sourceRef || material.name}${material.kind === "audio" ? ` · ${chunk.text.match(/\[(\d+:\d{2})\]/)?.[1] ?? "audio"}` : ""}`,
+            sourceRef: `${material.sourceRef || material.name} · ${material.kind === "audio" ? (chunk.text.match(/\[(\d+:\d{2})\]/)?.[1] ?? "audio") : `Text section ${chunk.index + 1}`}`,
           }));
         });
         const relevant = selectRelevantChunks(chunks, input.question, 5);

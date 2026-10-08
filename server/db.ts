@@ -330,6 +330,19 @@ export async function createStudySession(
     .where(and(eq(subjects.id, input.subjectId), eq(subjects.userId, userId)))
     .limit(1);
   if (!owner[0]) throw new Error("Subject not found");
+  const indexedMaterials = await db
+    .select({ id: materials.id })
+    .from(materials)
+    .where(
+      and(
+        eq(materials.subjectId, input.subjectId),
+        eq(materials.userId, userId),
+        eq(materials.status, "indexed")
+      )
+    )
+    .limit(1);
+  if (!indexedMaterials[0])
+    throw new Error("Add and index a source before starting a study session");
   if (input.topicId) {
     const topicOwner = await db
       .select({ id: topics.id })
@@ -808,9 +821,9 @@ export async function reviewFlashcard(
           1,
           card.intervalDays *
             (input.confidence === "high"
-              ? 2
+              ? 4
               : input.confidence === "medium"
-                ? 3
+                ? 2
                 : 1)
         )
       )
