@@ -31,6 +31,7 @@ import {
   GraduationCap,
   Home as HomeIcon,
   Languages,
+  KeyRound,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
@@ -935,6 +936,7 @@ function AppShell({
               onLocale={onLocale}
               theme={theme}
               onTheme={onTheme}
+              user={user}
             />
           )}
         </div>
@@ -2874,12 +2876,31 @@ function Settings({
   onLocale,
   theme,
   onTheme,
+  user,
 }: {
   locale: Locale;
   onLocale: (locale: Locale) => void;
   theme: Theme;
   onTheme: (theme: Theme) => void;
+  user: { id?: number; name?: string | null; email?: string | null } | null;
 }) {
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  const rotateRecoveryCode = async () => {
+    setRecoveryBusy(true);
+    setRecoveryError("");
+    try {
+      const response = await fetch("/api/auth/recovery-code/rotate", { method: "POST" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not create a recovery code");
+      setRecoveryCode(body.recoveryCode);
+    } catch (error) {
+      setRecoveryError(error instanceof Error ? error.message : "Could not create a recovery code");
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
   return (
     <>
       <div>
@@ -2926,6 +2947,20 @@ function Settings({
                   {trStatic("Dark appearance")}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+        <div className="card p-6">
+          <div className="flex items-start gap-4">
+            <div className="grid size-10 place-items-center rounded-xl bg-[#fff4df] text-[#bb7d25]"><KeyRound className="size-5" /></div>
+            <div className="flex-1">
+              <div className="text-sm font-extrabold">{trStatic("Free password recovery")}</div>
+              <div className="mt-1 text-xs leading-5 text-[#879497]">{trStatic("Create a one-time recovery code and save it somewhere safe. No email service is required.")}</div>
+              <button type="button" className="btn-light mt-4" disabled={recoveryBusy || !user} onClick={() => void rotateRecoveryCode()}>
+                {recoveryBusy ? trStatic("Please wait...") : trStatic("Create recovery code")}
+              </button>
+              {recoveryCode && <div className="mt-3 rounded-xl bg-[#f4f8f5] px-4 py-3 text-center font-mono text-sm font-extrabold tracking-[.12em] text-[#0f766e]">{recoveryCode}</div>}
+              {recoveryError && <p className="mt-2 text-xs font-semibold text-[#b14b45]">{recoveryError}</p>}
             </div>
           </div>
         </div>
@@ -3484,7 +3519,7 @@ function AuthGate({
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(true);
-  const [authView, setAuthView] = useState<"credentials" | "request" | "confirm">(
+  const [authView, setAuthView] = useState<"credentials" | "request" | "recovery" | "confirm">(
     () => (new URLSearchParams(window.location.search).get("reset") ? "confirm" : "credentials")
   );
   const [resetEmail, setResetEmail] = useState("");
@@ -3493,6 +3528,7 @@ function AuthGate({
   );
   const [resetPassword, setResetPassword] = useState("");
   const [resetPasswordConfirm, setResetPasswordConfirm] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
   const authError = (message: string) => {
     const messages: Record<string, string> = {
       "Cross-origin request rejected": trStatic(
@@ -3571,6 +3607,35 @@ function AuthGate({
       setBusy(false);
     }
   };
+  const resetWithRecoveryCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setNotice("");
+    if (resetPassword.length < 8 || resetPassword !== resetPasswordConfirm) {
+      setError(trStatic("Passwords must match and be at least 8 characters."));
+      setBusy(false);
+      return;
+    }
+    try {
+      const response = await fetch("/api/auth/recovery-code/reset", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ identifier: resetEmail, recoveryCode, password: resetPassword }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not reset password");
+      setAuthView("credentials");
+      setMode("login");
+      setPassword("");
+      setNotice(trStatic("Password changed. Save your new recovery code."));
+      if (body.recoveryCode) window.alert(`${trStatic("Your new StudyNivo recovery code is:")}\n\n${body.recoveryCode}\n\n${trStatic("Save it somewhere safe. It will be shown only once.")}`);
+    } catch (cause) {
+      setError(authError(cause instanceof Error ? cause.message : "Could not reset password"));
+    } finally {
+      setBusy(false);
+    }
+  };
   const submitCredentials = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -3589,6 +3654,9 @@ function AuthGate({
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Authentication failed");
+      if (body.recoveryCode) {
+        window.alert(`${trStatic("Your StudyNivo recovery code is:")}\n\n${body.recoveryCode}\n\n${trStatic("Save it somewhere safe. It will be shown only once.")}`);
+      }
       if (body.requiresSignIn) {
         setMode("login");
         setPassword("");
@@ -3752,8 +3820,9 @@ function AuthGate({
               type="button"
               className="text-xs font-bold text-[#0f766e]"
               onClick={() => {
-                setAuthView("request");
+                setAuthView("recovery");
                 setResetEmail(identifier);
+                setRecoveryCode("");
                 setError("");
                 setNotice("");
               }}
@@ -3780,6 +3849,18 @@ function AuthGate({
             <button disabled={busy} className="btn-primary w-full disabled:opacity-60" type="submit">
               {busy ? trStatic("Please wait...") : trStatic("Send reset link")}
               <Mail className="size-4" />
+            </button>
+          </form>
+        ) : authView === "recovery" ? (
+          <form className="mt-4 grid gap-2.5 text-left" onSubmit={resetWithRecoveryCode}>
+            <p className="text-sm leading-6 text-[#77868a]">{trStatic("Use the one-time recovery code saved when you created your account. No email is required.")}</p>
+            <input required className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("Email or phone number")} value={resetEmail} onChange={event => setResetEmail(event.target.value)} />
+            <input required autoCapitalize="characters" className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 font-mono text-sm uppercase outline-none focus:border-[#5aa99d]" placeholder="STUDY-XXXXXXXXXX" value={recoveryCode} onChange={event => setRecoveryCode(event.target.value)} />
+            <input required minLength={8} maxLength={128} type="password" className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("New password (8+ characters)")} value={resetPassword} onChange={event => setResetPassword(event.target.value)} />
+            <input required minLength={8} maxLength={128} type="password" className="w-full rounded-xl border border-[#dfe9e4] px-4 py-3 text-sm outline-none focus:border-[#5aa99d]" placeholder={trStatic("Confirm new password")} value={resetPasswordConfirm} onChange={event => setResetPasswordConfirm(event.target.value)} />
+            {error && <p className="text-xs font-semibold text-[#b14b45]">{error}</p>}
+            <button disabled={busy} className="btn-primary w-full disabled:opacity-60" type="submit">
+              {busy ? trStatic("Please wait...") : trStatic("Reset password")} <KeyRound className="size-4" />
             </button>
           </form>
         ) : (

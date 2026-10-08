@@ -22,6 +22,7 @@ export const users = mysqlTable(
     email: varchar("email", { length: 320 }),
     phoneNumber: varchar("phoneNumber", { length: 20 }),
     passwordHash: varchar("passwordHash", { length: 180 }),
+    recoveryCodeHash: varchar("recoveryCodeHash", { length: 64 }),
     sessionVersion: int("sessionVersion").default(0).notNull(),
     loginMethod: varchar("loginMethod", { length: 64 }),
     role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),

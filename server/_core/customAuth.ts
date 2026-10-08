@@ -107,6 +107,14 @@ function hashResetToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+function generateRecoveryCode() {
+  return `STUDY-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+}
+
+function hashRecoveryCode(code: string) {
+  return hashResetToken(code.trim().toUpperCase());
+}
+
 function publicOrigin(req: Request) {
   const configured = process.env.PUBLIC_APP_URL?.trim();
   if (configured) return configured.replace(/\/$/, "");
@@ -197,6 +205,7 @@ export async function registerCustomAuthRoutes(app: Express) {
         return res.status(503).json({ error: "Database is not available" });
       let user = await findUser(db, method, normalized);
       if (mode === "register") {
+        const recoveryCode = generateRecoveryCode();
         if (typeof name !== "string" || !name.trim() || name.trim().length > 120)
           return res.status(400).json({ error: "Enter your name" });
         if (user) {
@@ -218,6 +227,7 @@ export async function registerCustomAuthRoutes(app: Express) {
               phoneNumber: method === "phone" ? normalized : null,
               loginMethod: method,
               passwordHash: await hashPassword(password),
+              recoveryCodeHash: hashRecoveryCode(recoveryCode),
               lastSignedIn: new Date(),
             });
           } catch (error) {
@@ -238,7 +248,7 @@ export async function registerCustomAuthRoutes(app: Express) {
         if (!createdUser)
           return res.status(500).json({ error: "Could not create account" });
         await signIn(res, createdUser);
-        return res.json({ success: true });
+        return res.json({ success: true, recoveryCode });
       } else {
         if (
           !user?.passwordHash ||
@@ -361,6 +371,62 @@ export async function registerCustomAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[Password Reset] Confirmation failed", error);
       return res.status(500).json({ error: "Could not reset password" });
+    }
+  });
+
+  app.post("/api/auth/recovery-code/reset", async (req, res) => {
+    const identifier = typeof req.body?.identifier === "string" ? req.body.identifier : "";
+    const recoveryCode = typeof req.body?.recoveryCode === "string" ? req.body.recoveryCode : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    if (!identifier || !/^STUDY-[A-F0-9]{10}$/i.test(recoveryCode) || password.length < 8 || password.length > 128)
+      return res.status(400).json({ error: "Enter a valid recovery code and password" });
+    const normalized = identifier.includes("@") ? normalizeEmail(identifier) : normalizePhone(identifier);
+    const method: LoginMethod = normalized.includes("@") ? "email" : "phone";
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    if (isAuthRateLimited(ip, method, normalized))
+      return res.status(429).json({ error: "Too many attempts. Try again in 15 minutes." });
+    try {
+      const db = await getDb();
+      if (!db) return res.status(503).json({ error: "Database is not available" });
+      const user = await findUser(db, method, normalized);
+      const codeHash = hashRecoveryCode(recoveryCode);
+      if (!user?.recoveryCodeHash || user.recoveryCodeHash !== codeHash) {
+        recordAuthFailure(ip, method, normalized);
+        return res.status(400).json({ error: "Invalid recovery code" });
+      }
+      const nextRecoveryCode = generateRecoveryCode();
+      const claimed = await db
+        .update(users)
+        .set({
+          passwordHash: await hashPassword(password),
+          recoveryCodeHash: hashRecoveryCode(nextRecoveryCode),
+          sessionVersion: sql`${users.sessionVersion} + 1`,
+        })
+        .where(and(eq(users.id, user.id), eq(users.recoveryCodeHash, codeHash)));
+      if (Number(claimed[0].affectedRows ?? 0) !== 1) {
+        recordAuthFailure(ip, method, normalized);
+        return res.status(400).json({ error: "Invalid recovery code" });
+      }
+      clearAuthFailures(ip, method, normalized);
+      return res.json({ success: true, recoveryCode: nextRecoveryCode });
+    } catch (error) {
+      console.error("[Recovery Code] Reset failed", error);
+      return res.status(500).json({ error: "Could not reset password" });
+    }
+  });
+
+  app.post("/api/auth/recovery-code/rotate", async (req, res) => {
+    try {
+      const user = await userFromRequest(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const db = await getDb();
+      if (!db) return res.status(503).json({ error: "Database is not available" });
+      const recoveryCode = generateRecoveryCode();
+      await db.update(users).set({ recoveryCodeHash: hashRecoveryCode(recoveryCode) }).where(eq(users.id, user.id));
+      return res.json({ success: true, recoveryCode });
+    } catch (error) {
+      console.error("[Recovery Code] Rotate failed", error);
+      return res.status(500).json({ error: "Could not create a recovery code" });
     }
   });
 
