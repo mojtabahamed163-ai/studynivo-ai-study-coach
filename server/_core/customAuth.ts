@@ -308,7 +308,10 @@ export async function registerCustomAuthRoutes(app: Express) {
       try {
         await sendPasswordResetEmail({ to: normalized, name: user.name, resetUrl });
       } catch (error) {
-        console.error("[Password Reset] Email delivery failed", error);
+        console.error(
+          "[Password Reset] Email delivery failed",
+          error instanceof Error ? error.message : String(error),
+        );
       }
       return res.json(genericResponse);
     } catch (error) {
