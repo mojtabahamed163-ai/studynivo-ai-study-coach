@@ -376,6 +376,25 @@ const arabicQualityTranslations: Record<string, string> = {
   "Your recent sessions are short and consistent. StudyNivo will keep recommending focused 30–45 minute blocks instead of stretching the plan to an unrealistic two hours.": "جلساتك الأخيرة قصيرة ومنتظمة. سيواصل StudyNivo اقتراح فترات دراسة مركزة من 30 إلى 45 دقيقة بدلًا من تمديد الخطة إلى ساعتين غير واقعيتين.",
 };
 
+const dashboardTranslations: Partial<Record<Locale, Record<string, string>>> = {
+  ar: {
+    "Good morning": "صباح الخير",
+    "Good afternoon": "مساء الخير",
+    "Good evening": "مساء الخير",
+    student: "يا طالب",
+    "Build your study map": "ابنِ خريطة دراستك",
+    "Keep momentum": "حافظ على زخمك",
+    "Pasted study notes": "ملاحظات الدراسة",
+    "Subject material": "مادة المادة",
+    "Text section": "قسم نصي",
+    source: "مصدر",
+    sources: "مصادر",
+    topic: "موضوع",
+    "indexed topic": "موضوع مفهرس",
+    "indexed topics": "موضوعات مفهرسة",
+  },
+};
+
 const studyTestRows: Partial<Record<Locale, readonly string[]>> = {
   ar: ["اختبر ما تتذكره.", "تُحفظ إجاباتك ومستوى ثقتك في سجل التعلم لهذه المادة.", "ينشئ الاختبار التجريبي سؤالًا موثقًا من المصدر لكل موضوع مفهرس، حتى 50 موضوعًا.", "جارٍ استعادة اختبارك المحفوظ…", "تعذرت استعادة هذا الاختبار. ارجع إلى المادة وابدأ مجددًا.", "لا توجد أسئلة متبقية في هذا الاختبار.", "ابدأ الاختبار المحفوظ", "جارٍ إعداد الأسئلة…", "العودة إلى المادة", "تعذر إنشاء أسئلة موثقة من المصدر. تحقق من المادة المفهرسة وحاول عند توفر خدمة الذكاء الاصطناعي.", "اختبار تجريبي محفوظ", "تدريب محفوظ", "تقرير الاختبار التجريبي", "تقرير التدريب", "تم حفظ نتيجتك.", "مراجعة الإجابات", "صحيح", "تحتاج إلى مراجعة", "إجابتك", "الإجابة الصحيحة", "المصدر", "الخروج من الاختبار", "إنهاء الاختبار", "حفظ الإجابة", "تعذر حفظ الإجابة. حاول مرة أخرى."],
   es: ["Pon a prueba lo que recuerdas.", "Tus respuestas y nivel de confianza se guardan en el historial de aprendizaje de esta asignatura.", "El examen simulado crea una pregunta basada en fuentes por cada tema indexado, hasta 50 temas.", "Restaurando tu prueba guardada…", "No se pudo restaurar esta prueba. Vuelve a la asignatura y empieza de nuevo.", "Esta prueba no tiene preguntas pendientes.", "Iniciar prueba guardada", "Preparando preguntas…", "Volver a la asignatura", "No se pudieron generar preguntas basadas en fuentes. Comprueba el material indexado e inténtalo cuando el servicio de IA esté disponible.", "Examen simulado guardado", "Práctica guardada", "Informe del examen simulado", "Informe de práctica", "Tu resultado se ha guardado.", "Revisión de respuestas", "Correcto", "Necesita repaso", "Tu respuesta", "Respuesta correcta", "Fuente", "Salir de la prueba", "Terminar prueba", "Guardar respuesta", "No se pudo guardar esta respuesta. Inténtalo de nuevo."],
@@ -417,6 +436,7 @@ export function trStatic(source: string, locale: Locale = activeLocale) {
     (locale === "ar" ? arabicQualityTranslations[source] : undefined) ??
     appearanceTranslations[locale]?.[source] ??
     coreUiTranslations[locale]?.[source] ??
+    dashboardTranslations[locale]?.[source] ??
     reportTranslations[locale]?.[source] ??
     studyTestTranslations[locale]?.[source] ??
     catalog?.[source] ??

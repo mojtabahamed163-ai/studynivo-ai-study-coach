@@ -407,6 +407,12 @@ function formatAudioDuration(seconds?: number) {
   if (!seconds || seconds < 1) return undefined;
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
+function displaySourceRef(source: string) {
+  return source
+    .replaceAll("Pasted study notes", trStatic("Pasted study notes"))
+    .replaceAll("Subject material", trStatic("Subject material"))
+    .replace(/Text section (?=\d)/g, `${trStatic("Text section")} `);
+}
 
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -1106,7 +1112,9 @@ function Dashboard({
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <div className="eyebrow">{formatToday(locale)}</div>
-          <h1 className="page-title">{greeting}, student.</h1>
+          <h1 className="page-title">
+            {trStatic(greeting)}, {trStatic("student")}.
+          </h1>
           <p className="page-subtitle">
             {trStatic(
               "Your study path is ready. Start with the one task that will move you forward."
@@ -1168,14 +1176,14 @@ function Dashboard({
               <span className="source-pill border border-white/15 bg-white/10 text-[#d5f0eb]">
                 {next?.examDate
                   ? formatExam(next.examDate)
-                  : "Build your study map"}
+                  : trStatic("Build your study map")}
               </span>
               <span className="source-pill border border-white/15 bg-white/10 text-[#d5f0eb]">
-                {topic?.weak ? "Weak topic" : "Keep momentum"}
+                {topic?.weak ? trStatic("Weak topic") : trStatic("Keep momentum")}
               </span>
               {topic?.source && (
                 <span className="source-pill border border-white/15 bg-white/10 text-[#d5f0eb]">
-                  {topic.source}
+                  {displaySourceRef(topic.source)}
                 </span>
               )}
             </div>
@@ -1385,8 +1393,8 @@ function SubjectCard({
               {subject.name}
             </div>
             <div className="mt-1 text-[11px] font-semibold text-[#8a9698]">
-              {subject.topics.length} topics · {subject.materials.length}{" "}
-              sources
+              {subject.topics.length} {trStatic("topics")} · {subject.materials.length}{" "}
+              {trStatic("sources")}
             </div>
           </div>
         </div>
@@ -1406,9 +1414,9 @@ function SubjectCard({
       </div>
       <div className="mt-4 flex items-center justify-between text-[11px] font-semibold text-[#8a9799]">
         <span>
-          {subject.examDate ? formatExam(subject.examDate) : "No exam date yet"}
+          {subject.examDate ? formatExam(subject.examDate) : trStatic("No exam date yet")}
         </span>
-        <span>{subject.minutes} min studied</span>
+        <span>{subject.minutes} {trStatic("min studied")}</span>
       </div>
     </button>
   );
@@ -2198,7 +2206,7 @@ function TopicRow({ topic }: { topic: Topic }) {
         </span>
       </div>
       <div className="mt-3 text-[10px] font-semibold text-[#97a2a2]">
-        {topic.source}
+        {displaySourceRef(topic.source)}
       </div>
     </div>
   );
@@ -2314,7 +2322,7 @@ function MaterialsTab({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-extrabold text-[#3c4e54]">
-                  {material.name}
+                  {trStatic(material.name)}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-2 text-[10px] font-semibold text-[#8c999b]">
                   <span>{material.type}</span>
