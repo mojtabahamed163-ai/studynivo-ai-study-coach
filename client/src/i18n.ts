@@ -433,6 +433,7 @@ export function trStatic(source: string, locale: Locale = activeLocale) {
   return (
     authAndLandingTranslations[locale]?.[source] ??
     supplementalTranslations[locale]?.[source] ??
+    explanationTranslations[locale]?.[source] ??
     (locale === "ar" ? arabicQualityTranslations[source] : undefined) ??
     appearanceTranslations[locale]?.[source] ??
     coreUiTranslations[locale]?.[source] ??
@@ -472,3 +473,52 @@ export function formatToday(locale: Locale = activeLocale) {
 export function formatNumber(value: number, locale: Locale = activeLocale) {
   return new Intl.NumberFormat(locale).format(value);
 }
+const explanationTranslations: Partial<Record<Locale, Record<string, string>>> = {
+  ar: {
+    "Explain this simply": "اشرح هذا ببساطة",
+    "Explain step by step": "اشرح خطوة بخطوة",
+    "Give me an example": "أعطني مثالًا",
+    "What is the difference?": "ما الفرق بين المفهومين؟",
+    "Test my understanding": "اختبر فهمي",
+    "Explain from your material": "اشرح من مادتك",
+    "Choose the evidence first.": "اختر الدليل أولًا.",
+    "Every explanation stays inside this subject and points back to the selected source.": "كل شرح يبقى داخل هذه المادة ويعود إلى المصدر المحدد.",
+    File: "الملف",
+    "Part of the file": "جزء من الملف",
+    "All indexed sources": "كل المصادر المفهرسة",
+    "The whole selected file": "الملف المحدد كاملًا",
+    "Ask about this selected section…": "اسأل عن هذا الجزء المحدد…",
+    "Your explanation question": "سؤال الشرح",
+    "Grounded only in": "مرتبط فقط بـ",
+    "Building a source-linked explanation…": "جارٍ إعداد شرح مرتبط بالمصدر…",
+    "I couldn’t find that information in the file.": "لم أجد هذه المعلومة في الملف.",
+    "No outside knowledge was presented as if it came from your material. Add a clearer or more complete section and try again.": "لم أعرض معرفة خارجية كما لو كانت من مادتك. أضف جزءًا أوضح أو أكثر اكتمالًا وحاول مرة أخرى.",
+    "Evidence from the selected material": "دليل من المادة المحددة",
+    "The sources do not fully agree.": "المصادر لا تتفق بالكامل.",
+    "Check the same section": "تحقق من الجزء نفسه",
+    "Try 3–5 short questions.": "جرّب 3–5 أسئلة قصيرة.",
+    "Answer in your own words…": "أجب بكلماتك…",
+    "Check answer": "تحقق من الإجابة",
+    "Show explanation": "اعرض الشرح",
+    "Hide explanation": "أخفِ الشرح",
+    "Good recall. Keep the distinction clear.": "استرجاع جيد. حافظ على وضوح الفرق.",
+    "Not quite yet. Compare your answer with the source-backed correction below.": "ليس تمامًا بعد. قارن إجابتك بالتصحيح المدعوم بالمصدر أدناه.",
+    "One last understanding check": "سؤال أخير للتحقق من الفهم",
+    "Explain it without looking back…": "اشرحه دون الرجوع للمصدر…",
+    "Check my understanding": "تحقق من فهمي",
+    "That shows the core idea.": "هذا يوضح الفكرة الأساسية.",
+    "Review the core idea once more.": "راجع الفكرة الأساسية مرة أخرى.",
+    "Expected answer": "الإجابة المتوقعة",
+    "Choose a file and a teaching action to begin.": "اختر ملفًا وفعلًا تعليميًا للبدء.",
+    "Add and index a clear source first.": "أضف مصدرًا واضحًا وافهرسه أولًا.",
+    "Add and index a clear source before asking for an explanation.": "أضف مصدرًا واضحًا وافهرسه قبل طلب الشرح.",
+    "PDF, text, and reviewed image text can power this path. An unclear OCR result stays out of the explanation.": "يمكن استخدام PDF والنص ونص الصور الذي تمت مراجعته. نتيجة OCR غير الواضحة لا تدخل في الشرح.",
+    "The grounded explanation is unavailable. Your question is still here; retry the same request.": "الشرح المرتبط بالمصدر غير متاح. سؤالك ما زال محفوظًا؛ أعد المحاولة بالطلب نفسه.",
+    "Saved explanation path": "مسار الشرح المحفوظ",
+    "Keep the thread with the source.": "حافظ على ارتباط المحادثة بالمصدر.",
+    "Your recent explanations and check answers stay separated by account, subject, file, and section on this device.": "تبقى شروحاتك وإجابات التحقق الأخيرة منفصلة حسب الحساب والمادة والملف والجزء على هذا الجهاز.",
+    "Your explanation history will appear here after the first answer.": "سيظهر سجل الشرح هنا بعد أول إجابة.",
+    "Source-linked explanation": "شرح مرتبط بالمصدر",
+    confidence: "الثقة",
+  },
+};

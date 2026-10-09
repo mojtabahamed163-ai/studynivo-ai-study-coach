@@ -340,6 +340,7 @@ export const appRouter = router({
     askTextMaterial: protectedProcedure
       .input(
         z.object({
+          subjectId: z.number().int().positive().optional(),
           subjectName: z.string().min(1).max(160),
           question: z.string().min(2).max(1200),
           context: z.string().min(1).max(16000),
@@ -364,20 +365,34 @@ export const appRouter = router({
             .default("en"),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        if (!input.subjectId) throw new Error("A saved subject is required");
+        const subject = await getSubject(ctx.user.id, input.subjectId);
+        if (!subject) throw new Error("Subject not found");
+        const ownedContext = subject.materials
+          .filter(material => material.status === "indexed" && material.textContent)
+          .map(material => `[${material.sourceRef || material.name}] ${material.textContent}`)
+          .join("\n\n");
         const chunks = selectRelevantChunks(
-          chunkText(input.context),
+          chunkText(ownedContext),
           input.question,
           5
         );
         if (!chunks.length)
           return {
-            answer: insufficientContextMessage(input.locale, input.context),
+            answer: insufficientContextMessage(input.locale, ownedContext),
             evidence: [],
             sourceRefs: [],
             confidence: "low" as const,
             insufficientContext: true,
             conflicts: [],
+            practiceQuestions: [],
+            checkQuestion: {
+              question: "",
+              expectedAnswer: "",
+              explanation: "",
+              sourceRef: { label: "" },
+            },
           };
         const context = chunks
           .map(chunk => `[${chunk.sourceRef}] ${chunk.text}`)
@@ -386,7 +401,7 @@ export const appRouter = router({
           {
             role: "system",
             content: groundedSystemPrompt(
-              input.subjectName,
+              subject.name,
               context,
               input.locale
             ),
@@ -404,6 +419,9 @@ export const appRouter = router({
       .input(
         z.object({
           subjectId: z.number().int().positive(),
+          materialId: z.number().int().positive().optional(),
+          sectionIndex: z.number().int().min(0).optional(),
+          action: z.enum(["simple", "steps", "example", "compare", "check"]).default("simple"),
           question: z.string().min(2).max(1200),
           locale: z
             .enum([
@@ -428,7 +446,12 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const subject = await getSubject(ctx.user.id, input.subjectId);
         if (!subject) throw new Error("Subject not found");
-        const chunks = subject.materials.flatMap(material => {
+        const selectedMaterials = input.materialId
+          ? subject.materials.filter(material => material.id === input.materialId)
+          : subject.materials;
+        if (input.materialId && !selectedMaterials.length)
+          throw new Error("Material does not belong to this subject");
+        const chunks = selectedMaterials.flatMap(material => {
           if (!material.textContent || material.status !== "indexed") return [];
           const transcript = Array.isArray(material.transcriptSegments)
             ? (
@@ -444,10 +467,13 @@ export const appRouter = router({
                 })
                 .join("\n")
             : material.textContent;
-          return chunkText(transcript).map(chunk => ({
+          const materialChunks = chunkText(transcript).map(chunk => ({
             ...chunk,
             sourceRef: `${material.sourceRef || material.name} · ${material.kind === "audio" ? (chunk.text.match(/\[(\d+:\d{2})\]/)?.[1] ?? "audio") : `Text section ${chunk.index + 1}`}`,
           }));
+          return input.sectionIndex === undefined
+            ? materialChunks
+            : materialChunks.filter(chunk => chunk.index === input.sectionIndex);
         });
         const relevant = selectRelevantChunks(chunks, input.question, 5);
         if (!relevant.length)
@@ -458,14 +484,28 @@ export const appRouter = router({
             confidence: "low" as const,
             insufficientContext: true,
             conflicts: [],
+            practiceQuestions: [],
+            checkQuestion: {
+              question: "",
+              expectedAnswer: "",
+              explanation: "",
+              sourceRef: { label: "" },
+            },
           };
         const context = relevant
           .map(chunk => `[${chunk.sourceRef}] ${chunk.text}`)
           .join("\n\n");
+        const mode = {
+          simple: "explain this simply for a beginner",
+          steps: "explain this step by step in the source order",
+          example: "give an example only when the source supports one, otherwise state that the file has no example",
+          compare: "compare the two concepts named by the student and say when the file does not contain both",
+          check: "teach briefly, then focus on testing understanding",
+        }[input.action];
         const answer = await chatCompletion([
           {
             role: "system",
-            content: groundedSystemPrompt(subject.name, context, input.locale),
+            content: groundedSystemPrompt(subject.name, context, input.locale, mode),
           },
           { role: "user", content: input.question },
         ], { jsonSchema: groundedAnswerJsonSchema, timeoutMs: 60_000 });

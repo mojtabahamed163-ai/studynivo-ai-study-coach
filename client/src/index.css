@@ -123,6 +123,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .flashcard:hover { border-color: #98c8be; }
 .auth-card { width: min(430px, calc(100% - 32px)); padding: 32px; }
 .kicker { color: #899799; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .1em; }
+.explain-action { min-height: 38px; padding: 0 11px; border: 1px solid #d7e6e0; border-radius: 11px; background: #fff; color: #5e7373; font-size: 11px; font-weight: 750; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
+.explain-action:hover { border-color: #9fcac0; background: #f1f8f5; color: #0f766e; transform: translateY(-1px); }
+.explain-action.active { border-color: #0f766e; background: #e6f4f0; color: #0f766e; }
+.explain-action:disabled { cursor: not-allowed; opacity: .55; transform: none; }
 
 @media (max-width: 980px) {
   .app-sidebar { width: 210px; }
@@ -229,6 +233,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   background: #1b302c;
   color: #a9d5cc;
 }
+.dark .explain-action { border-color: var(--border); background: #192724; color: #b3c8c2; }
+.dark .explain-action:hover, .dark .explain-action.active { border-color: #4fb3a6; background: #1d3934; color: #78d0c2; }
 .dark .progress-track { background: #273833; }
 .dark .landing-nav,
 .dark .landing-section { color: var(--foreground); }

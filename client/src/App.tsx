@@ -14,6 +14,7 @@ import { MaterialSearch } from "@/components/MaterialSearch";
 import { FlashcardsReview } from "@/components/FlashcardsReview";
 import { PersistedPracticeTest } from "@/components/PersistedPracticeTest";
 import { ReviewQueue } from "@/components/ReviewQueue";
+import { MaterialExplanation } from "@/components/MaterialExplanation";
 import {
   ArrowRight,
   BarChart3,
@@ -1881,13 +1882,7 @@ function SubjectSpace({
             question: q,
             locale,
           })
-        : await askTextMaterialMutation.mutateAsync({
-            subjectName: subject.name,
-            question: q,
-            context: subject.materials.map(material => material.text).filter(Boolean).join("\n\n"),
-            sourceRef: subject.materials[0]?.name,
-            locale,
-          });
+        : await Promise.reject(new Error("A saved subject is required for grounded explanations."));
       setChatAnswer(
         result.insufficientContext
           ? `${result.answer}\n\n${trStatic("Add more indexed material for a fuller explanation.")}`
@@ -1997,58 +1992,10 @@ function SubjectSpace({
         <FlashcardsReview subjectId={subject.id} subjectName={subject.name} />
       )}
       {tab === "chat" && (
-        <div className="mt-6 grid max-w-3xl gap-4">
-          <div className="card p-6">
-            <div className="flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-xl bg-[#eaf4f1] text-[#0f766e]">
-                <MessageCircle className="size-5" />
-              </div>
-              <div>
-                <div className="kicker">{trStatic("Ask your material")}</div>
-                <h2 className="mt-1 text-xl font-extrabold">
-                  {trStatic("A grounded coach for")} {subject.name}
-                </h2>
-              </div>
-            </div>
-            <p className="mt-4 text-sm leading-6 text-[#748287]">
-              {trStatic(
-                "Ask about a topic, what to memorize, or where something was explained. Answers stay inside this subject space."
-              )}
-            </p>
-            <div className="mt-5 flex gap-2">
-              <input
-                className="input"
-                value={chatInput}
-                onChange={event => setChatInput(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === "Enter") ask();
-                }}
-                placeholder={trStatic("e.g. Explain genetics simply")}
-              />
-              <button className="btn-primary shrink-0" onClick={ask}>
-                {trStatic("Ask")}
-                <ArrowRight className="size-4" />
-              </button>
-            </div>
-            {chatAnswer && (
-              <div
-                aria-live="polite"
-                className="mt-5 whitespace-pre-line rounded-2xl border border-[#dcece7] bg-[#f1f8f5] p-4 text-sm leading-7 text-[#365b54]"
-              >
-                <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-[#0f766e]">
-                  <ShieldCheckIcon />
-                  {trStatic("Grounded answer")} · {trStatic(chatConfidence)}
-                </div>
-                {chatAnswer}
-                {chatSources.length > 0 && (
-                  <div className="mt-4 border-t border-[#d3e7e0] pt-3 text-xs font-semibold text-[#52736b]">
-                    {trStatic("Sources")}: {chatSources.join(" · ")}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <MaterialExplanation
+          subject={subject}
+          locale={locale}
+        />
       )}
       {tab === "progress" && <ProgressSubject subject={subject} />}
     </>
