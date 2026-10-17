@@ -99,7 +99,12 @@ export const groundedAnswerJsonSchema: Record<string, unknown> = {
 };
 
 export async function chatCompletion(messages: ChatMessage[], options?: { model?: string; jsonSchema?: Record<string, unknown>; timeoutMs?: number }) {
-  if (!ENV.forgeApiUrl || !ENV.forgeApiKey) throw new Error("Built-in AI is not available in this environment");
+  if (ENV.forgeApiUrl && ENV.forgeApiKey) return openAiCompatibleCompletion(messages, options);
+  if (ENV.geminiApiKey) return geminiCompletion(messages, options);
+  throw new Error("No AI provider is configured. Set MANUS_API_URL/MANUS_API_KEY or GEMINI_API_KEY.");
+}
+
+async function openAiCompatibleCompletion(messages: ChatMessage[], options?: { model?: string; jsonSchema?: Record<string, unknown>; timeoutMs?: number }) {
   const body: Record<string, unknown> = { messages, model: options?.model, temperature: 0.2 };
   if (options?.jsonSchema) body.response_format = { type: "json_schema", json_schema: { name: "studynivo_response", strict: true, schema: options.jsonSchema } };
   const response = await fetch(`${ENV.forgeApiUrl.replace(/\/+$/, "")}/v1/chat/completions`, { method: "POST", headers: { Authorization: `Bearer ${ENV.forgeApiKey}`, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(options?.timeoutMs ?? 60_000) });
@@ -107,7 +112,32 @@ export async function chatCompletion(messages: ChatMessage[], options?: { model?
   if (!response.ok || payload.error) throw new Error(`AI request failed (${response.status})`);
   const content = payload.choices?.[0]?.message?.content;
   if (!content) throw new Error("AI returned no usable content");
-  return content;
+  return unwrapJsonFence(content);
+}
+
+async function geminiCompletion(messages: ChatMessage[], options?: { model?: string; jsonSchema?: Record<string, unknown>; timeoutMs?: number }) {
+  const systemMessage = messages.find(message => message.role === "system");
+  const contents = messages.filter(message => message.role !== "system").map(message => ({
+    role: message.role === "assistant" ? "model" : "user",
+    parts: [{ text: typeof message.content === "string" ? message.content : message.content.map(part => part.type === "text" ? part.text : "[image omitted]").join("\n") }],
+  }));
+  const body: Record<string, unknown> = {
+    contents,
+    generationConfig: { temperature: 0.2, ...(options?.jsonSchema ? { responseMimeType: "application/json" } : {}) },
+  };
+  if (systemMessage) body.systemInstruction = { parts: [{ text: typeof systemMessage.content === "string" ? systemMessage.content : systemMessage.content.map(part => part.type === "text" ? part.text : "[image omitted]").join("\n") }] };
+  const model = options?.model || ENV.geminiModel;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(ENV.geminiApiKey)}`;
+  const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(options?.timeoutMs ?? 60_000) });
+  const payload = await response.json().catch(() => ({})) as { error?: { message?: string }; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+  if (!response.ok || payload.error) throw new Error(`Gemini request failed (${response.status})`);
+  const content = payload.candidates?.[0]?.content?.parts?.map(part => part.text ?? "").join("").trim();
+  if (!content) throw new Error("Gemini returned no usable content");
+  return unwrapJsonFence(content);
+}
+
+function unwrapJsonFence(content: string) {
+  return content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 }
 
 export function groundedSystemPrompt(subjectName: string, sourceContext: string, locale: InterfaceLocale = "en", teachingMode = "answer the student’s question") {

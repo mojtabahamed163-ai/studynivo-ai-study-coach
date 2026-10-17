@@ -30,4 +30,10 @@ export const ENV = {
   get forgeApiKey() {
     return process.env.MANUS_API_KEY ?? "";
   },
+  get geminiApiKey() {
+    return process.env.GEMINI_API_KEY ?? "";
+  },
+  get geminiModel() {
+    return process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+  },
 };

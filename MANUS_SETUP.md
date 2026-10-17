@@ -23,6 +23,8 @@ https://github.com/mojtabahamed163-ai/studynivo-ai-study-coach
 
 أنشئ Secret جديدًا باسم `STUDYNIVO_SESSION_SECRET`، عشوائيًا وبطول 32 حرفًا أو أكثر. أضف أيضًا `BREVO_API_KEY` و`BREVO_FROM_EMAIL` عبر Secrets فقط إذا أردت تفعيل استعادة كلمة المرور بالبريد؛ يجب أن يكون المرسل موثقًا في Brevo. لا تنسخ أي Secret أو `DATABASE_URL` من حساب آخر، ولا تضعها في GitHub.
 
+للاختبار المحلي أو كخيار AI مجاني/تجريبي احتياطي، يمكن ضبط `GEMINI_API_KEY` و`GEMINI_MODEL=gemini-2.5-flash`. يستخدم التطبيق `MANUS_API_URL` و`MANUS_API_KEY` أولًا إذا كانا موجودين، ثم ينتقل إلى Gemini عند غيابهما. مفتاح Gemini يجب أن يكون صالحًا، وتبقى حصته المجانية خاضعة لحدود Google وليست غير محدودة.
+
 ## التشغيل
 
 من جذر المستودع:
