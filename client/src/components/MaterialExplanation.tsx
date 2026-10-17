@@ -15,6 +15,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import type { Locale } from "@/i18n";
 import { trStatic } from "@/i18n";
+import { Streamdown } from "streamdown";
 
 type Material = {
   id: string;
@@ -452,7 +453,9 @@ function ExplanationResultView({
         <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.14em] text-[#0f766e]"><ShieldCheck className="size-4" />{trStatic("Source-linked explanation", locale)}</div>
         <span className="source-pill">{trStatic(result.confidence, locale)} {trStatic("confidence", locale)}</span>
       </div>
-      <div className="mt-4 whitespace-pre-line text-sm leading-8 text-[#355451]">{result.answer}</div>
+      <div className="explanation-copy mt-4 text-sm leading-8 text-[#355451]">
+        <Streamdown>{result.answer}</Streamdown>
+      </div>
 
       {result.evidence.length > 0 && (
         <div className="mt-6 rounded-2xl border border-[#dcece7] bg-[#f6faf8] p-4">

@@ -475,7 +475,23 @@ export const appRouter = router({
             ? materialChunks
             : materialChunks.filter(chunk => chunk.index === input.sectionIndex);
         });
-        const relevant = selectRelevantChunks(chunks, input.question, 5);
+        // A teaching action such as “explain simply” is intentionally generic.
+        // When the learner selected a section, use that section directly instead
+        // of requiring its text to contain words like “explain” or “step”.
+        // For whole-material actions, fall back to the first indexed chunks so
+        // the button produces a useful overview rather than a false “not found”.
+        const searched = selectRelevantChunks(chunks, input.question, 5);
+        const actionPrompts: Record<typeof input.action, string> = {
+          simple: "Explain this selected section simply for a beginner.",
+          steps: "Explain this selected section step by step in the order supported by the source.",
+          example: "Give me an example from this selected section. If the file has no example, say so clearly.",
+          compare: "What is the difference between the two concepts in this selected section? Name them only if the file identifies both.",
+          check: "Teach this selected section briefly, then focus on testing my understanding.",
+        };
+        const isActionRequest = input.question.trim() === actionPrompts[input.action];
+        const relevant = isActionRequest
+          ? (input.sectionIndex !== undefined ? chunks : (searched.length > 0 ? searched : chunks.slice(0, 5)))
+          : searched;
         if (!relevant.length)
           return {
             answer: insufficientContextMessage(input.locale),

@@ -107,7 +107,8 @@ export function parseGroundedAnswer(
         !item.explanation.trim() ||
         !allowed.has(label) ||
         !source ||
-        !hasSourceOverlap(`${item.question} ${item.answer} ${item.explanation}`, source.text)
+        !hasSourceOverlap(item.answer, source.text) ||
+        !hasSourceOverlap(item.explanation, source.text)
       )
         return null;
       return {
@@ -137,7 +138,8 @@ export function parseGroundedAnswer(
     rawCheck.explanation.trim() &&
     allowed.has(checkLabel) &&
     checkSource &&
-    hasSourceOverlap(`${rawCheck.question} ${rawCheck.expectedAnswer} ${rawCheck.explanation}`, checkSource.text)
+    hasSourceOverlap(rawCheck.expectedAnswer, checkSource.text) &&
+    hasSourceOverlap(rawCheck.explanation, checkSource.text)
       ? {
           question: rawCheck.question.trim(),
           expectedAnswer: rawCheck.expectedAnswer.trim(),

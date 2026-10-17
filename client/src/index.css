@@ -123,6 +123,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .flashcard:hover { border-color: #98c8be; }
 .auth-card { width: min(430px, calc(100% - 32px)); padding: 32px; }
 .kicker { color: #899799; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .1em; }
+.explanation-copy p { margin: 0 0 12px; }
+.explanation-copy p:last-child { margin-bottom: 0; }
+.explanation-copy h1, .explanation-copy h2, .explanation-copy h3 { margin: 18px 0 8px; color: #294b49; font-weight: 850; line-height: 1.35; }
+.explanation-copy h1:first-child, .explanation-copy h2:first-child, .explanation-copy h3:first-child { margin-top: 0; }
+.explanation-copy ul, .explanation-copy ol { margin: 8px 0 14px; padding-inline-start: 22px; }
+.explanation-copy li { margin: 5px 0; padding-inline-start: 3px; }
+.explanation-copy strong { color: #1f514b; font-weight: 850; }
+.explanation-copy code { border-radius: 6px; background: #eaf4f0; padding: 2px 5px; color: #17675d; font-size: .92em; }
 .explain-action { min-height: 38px; padding: 0 11px; border: 1px solid #d7e6e0; border-radius: 11px; background: #fff; color: #5e7373; font-size: 11px; font-weight: 750; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
 .explain-action:hover { border-color: #9fcac0; background: #f1f8f5; color: #0f766e; transform: translateY(-1px); }
 .explain-action.active { border-color: #0f766e; background: #e6f4f0; color: #0f766e; }
@@ -235,6 +243,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .dark .explain-action { border-color: var(--border); background: #192724; color: #b3c8c2; }
 .dark .explain-action:hover, .dark .explain-action.active { border-color: #4fb3a6; background: #1d3934; color: #78d0c2; }
+.dark .explanation-copy h1, .dark .explanation-copy h2, .dark .explanation-copy h3 { color: #bde0d7; }
+.dark .explanation-copy strong { color: #9ed7ca; }
+.dark .explanation-copy code { background: #1d3934; color: #9ed7ca; }
 .dark .progress-track { background: #273833; }
 .dark .landing-nav,
 .dark .landing-section { color: var(--foreground); }
